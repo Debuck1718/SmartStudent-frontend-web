@@ -1,7 +1,7 @@
 {
-  "name": "SmartStudent",
-  "short_name": "SmartStudent",
-  "description": "Manage assignments, budget, goals & rewards with SmartStudent.",
+  "name": "SmartStudentAct",
+  "short_name": "SmartStudentact",
+  "description": "Manage assignments, budget, goals & rewards with SmartStudentAct.",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#ffffff",

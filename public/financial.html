@@ -5,54 +5,111 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Financial Advice</title>
   <link rel="stylesheet" href="financial.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 1rem;
+      background: #f5f5f5;
+    }
+    nav {
+      margin-bottom: 1rem;
+    }
+    blockquote {
+      font-style: italic;
+      color: #333;
+    }
+    .reminder {
+      background: #fff8e1;
+      border-left: 5px solid #ffb300;
+      padding: 1rem;
+      margin-top: 1.5rem;
+      font-size: 1rem;
+    }
+  </style>
 </head>
 <body>
-  <nav><a href="dashboard.html">Back to Dashboard</a></nav>
+  <nav><a href="dashboard.html">← Back to Dashboard</a></nav>
+
   <main>
     <h2>💡 Financial Tips</h2>
     <ul id="tipsList">
-      <li>
-        <strong>Track Your Spending:</strong> Know where every cedi goes. Use budgeting apps or spreadsheets to avoid impulse buying.
-      </li>
-      <li>
-        <strong>Create a Weekly Budget:</strong> Plan your weekly allowance and stick to it. Set aside amounts for food, transportation, and savings.
-      </li>
-      <li>
-        <strong>Follow the 50/30/20 Rule:</strong> Spend 50% on needs, 30% on wants, and save 20% if possible. Adjust percentages based on your situation.
-      </li>
-      <li>
-        <strong>Start Saving Early:</strong> Even GHS 2 a day adds up. Create a goal (e.g. “Save GHS 50 in 1 month”) and reward yourself when you succeed.
-      </li>
-      <li>
-        <strong>Avoid Unnecessary Debt:</strong> Borrow only when necessary and understand repayment terms. Avoid "buy now, pay later" traps.
-      </li>
-      <li>
-        <strong>Make Informed Decisions:</strong> Before making any purchase or investment, ask yourself: “Do I need this?” and “Is this the best deal?”
-      </li>
-      <li>
-        <strong>Learn to Compare Prices:</strong> Don’t just buy the first option. Use online stores or visit different vendors to find better prices.
-      </li>
-      <li>
-        <strong>Build an Emergency Fund:</strong> Set aside a small portion each week for unexpected needs. This builds financial confidence and reduces stress.
-      </li>
-      <li>
-        <strong>Practice Delayed Gratification:</strong> Wait a few days before making non-essential purchases. Often, the desire passes.
-      </li>
-      <li>
-        <strong>Review Weekly:</strong> Take 5 minutes every weekend to review what you spent, what you saved, and what needs to improve.
-      </li>
+      <li><strong>Track Your Spending:</strong> Know where every cedi goes. Use budgeting apps or spreadsheets to avoid impulse buying.</li>
+      <li><strong>Create a Weekly Budget:</strong> Plan your weekly allowance and stick to it. Set aside amounts for food, transportation, and savings.</li>
+      <li><strong>Follow the 50/30/20 Rule:</strong> Spend 50% on needs, 30% on wants, and save 20% if possible.</li>
+      <li><strong>Start Saving Early:</strong> Even GHS 2 a day adds up. Set a savings goal and reward yourself when you reach it.</li>
+      <li><strong>Avoid Unnecessary Debt:</strong> Borrow only when necessary and understand repayment terms.</li>
+      <li><strong>Make Informed Decisions:</strong> Ask: “Do I need this?” and “Is this the best deal?” before any purchase.</li>
+      <li><strong>Compare Prices:</strong> Check multiple vendors to avoid overspending.</li>
+      <li><strong>Build an Emergency Fund:</strong> Save a little each week for unexpected expenses.</li>
+      <li><strong>Practice Delayed Gratification:</strong> Wait before non-essential purchases to avoid regret.</li>
+      <li><strong>Review Weekly:</strong> Review what you spent, saved, and what you’ll change next week.</li>
     </ul>
 
+    <!-- Weekly Quote -->
     <section style="margin-top: 2rem;">
       <h3>📌 Weekly Quote</h3>
-      <blockquote style="font-style: italic; margin: 0.5rem 0;">
-        “Do not save what is left after spending, but spend what is left after saving.”
-      </blockquote>
-      <cite>– Warren Buffett</cite>
+      <blockquote id="weeklyQuote">Loading...</blockquote>
+      <cite id="quoteAuthor"></cite>
     </section>
+
+    <!-- Budget Reminder -->
+    <div id="budgetReminder" class="reminder"></div>
   </main>
 
-  <script src="script.js"></script>
+  <script>
+    const quotes = [
+  { text: "Do not save what is left after spending, but spend what is left after saving.", author: "Warren Buffett" },
+  { text: "A budget is telling your money where to go instead of wondering where it went.", author: "Dave Ramsey" },
+  { text: "Wealth consists not in having great possessions, but in having few wants.", author: "Epictetus" },
+  { text: "Beware of little expenses; a small leak will sink a great ship.", author: "Benjamin Franklin" },
+  { text: "Financial freedom is available to those who learn about it and work for it.", author: "Robert Kiyosaki" },
+  { text: "It’s not your salary that makes you rich, it’s your spending habits.", author: "Charles A. Jaffe" },
+  { text: "Money looks better in the bank than on your feet.", author: "Sophia Amoruso" },
+  { text: "Save money and money will save you.", author: "Evans Buckman" },  // ✅ Comma added here
+  { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
+  { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+  { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+  { text: "You miss 100% of the shots you don’t take.", author: "Wayne Gretzky" },
+  { text: "Start where you are. Use what you have. Do what you can.", author: "Arthur Ashe" }
+];
+
+    Date.prototype.getWeekNumber = function () {
+  const date = new Date(this.getTime());
+  date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+  return weekNo;
+};
+
+    const weekIndex = new Date().getWeekNumber() % quotes.length;
+    const selectedQuote = quotes[weekIndex];
+    document.getElementById('weeklyQuote').textContent = `“${selectedQuote.text}”`;
+    document.getElementById('quoteAuthor').textContent = `– ${selectedQuote.author}`;
+
+    // Reminder Message (can be dynamic from API)
+    const reminder = document.getElementById('budgetReminder');
+    const lastBudget = localStorage.getItem('lastExpenseAmount') || 0;
+    const lastType = localStorage.getItem('lastExpenseType') || 'none';
+
+    let message = "🧾 You haven’t set a new savings goal this week. Don’t forget to plan ahead!";
+    if (lastType === 'goal') {
+      message = `✅ Great job! You’ve set a saving goal of GHS ${lastBudget}. Keep it up!`;
+    } else if (lastType === 'expense' && lastBudget > 100) {
+      message = `⚠️ You spent GHS ${lastBudget} recently. Remember to balance your budget with a saving goal.`;
+    }
+
+    reminder.textContent = message;
+
+    // Get Week Number Helper
+    Date.prototype.getWeekNumber = function () {
+      const date = new Date(Date.UTC(this.getFullYear(), this.getMonth(), this.getDate()));
+      const dayNum = date.getUTCDay() || 7;
+      date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+      return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+    };
+  </script>
 </body>
 </html>
+
 

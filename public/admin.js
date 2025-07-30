@@ -205,3 +205,4 @@ function buildCard(u) {
       ${promoteBtn} ${removeBtn}
     </div>`;
 }
+
