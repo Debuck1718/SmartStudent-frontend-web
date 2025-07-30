@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SmartStudentAct Admin Panel</title>
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+  <header>
+    <h1>Admin Dashboard - SmartStudentAct</h1>
+    <button id="logoutBtn">Logout</button>
+  </header>
+
+  <section>
+    <label for="schoolFilter">Select School:</label>
+    <select id="schoolFilter"></select>
+
+    <label for="roleFilter">Filter by Role:</label>
+    <select id="roleFilter">
+      <option value="all">All</option>
+      <option value="student">Students</option>
+      <option value="teacher">Teachers</option>
+      <option value="admin">Admins</option>
+    </select>
+  </section>
+
+  <section id="userTableContainer">
+    <h2>Users</h2>
+    <div id="userTable">Loading users...</div>
+  </section>
+
+  <div id="permissionsNote">
+    <p><strong>Note:</strong> You can only manage users from your school unless you are a global overseer.</p>
+  </div>
+
+  <template id="userCardTemplate">
+    <div class="user-card">
+      <strong class="name"></strong> (<span class="email"></span>)<br/>
+      Role: <span class="role"></span> | School: <span class="school"></span><br/>
+      <div class="actions"></div>
+    </div>
+  </template>
+
+  <script src="admin.js"></script>
+</body>
+</html>

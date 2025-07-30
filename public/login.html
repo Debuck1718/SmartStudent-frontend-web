@@ -1,0 +1,196 @@
+<!<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login - SmartStudent</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .login-container {
+      background: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      max-width: 400px;
+      width: 90%;
+    }
+
+    h2 {
+      text-align: center;
+      color: #4a90e2;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #333;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 0.7rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 1rem;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 0.75rem;
+      background-color: #4a90e2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background-color: #2d76c2;
+    }
+
+    .signup-link {
+      margin-top: 1rem;
+      text-align: center;
+      font-size: 0.95rem;
+    }
+
+    .signup-link a {
+      color: #4a90e2;
+      text-decoration: none;
+    }
+
+    .signup-link a:hover {
+      text-decoration: underline;
+    }
+
+    .message {
+      text-align: center;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .error {
+      color: red;
+    }
+
+    .success {
+      color: green;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 2rem;
+      color: #777;
+      font-size: 0.85rem;
+    }
+  </style>
+
+  <script>
+    const API_BASE = location.hostname === 'localhost'
+      ? 'http://localhost:3000'
+      : 'https://smartstudent-backend.onrender.com';
+  </script>
+</head>
+<body>
+  <div class="login-container">
+    <h2>🔐 Login to SmartStudent</h2>
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="email">Email address</label>
+        <input type="email" id="email" name="email" required />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required />
+      </div>
+
+      <button type="submit" class="btn">Sign In</button>
+
+      <div class="signup-link">
+        Don't have an account? <a href="signup.html">Create one</a>
+      </div>
+
+      <div id="message" class="message"></div>
+    </form>
+  </div>
+
+  <footer>
+    &copy; <span id="year"></span> SmartStudent. Empowering students.
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    document.getElementById('loginForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const msgBox = document.getElementById('message');
+
+      msgBox.textContent = '';
+      msgBox.className = 'message';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          msgBox.textContent = '✅ Login successful! Redirecting...';
+          msgBox.className = 'message success';
+
+          localStorage.setItem('user', JSON.stringify(data.user));
+
+          setTimeout(() => {
+            const user = data.user;
+
+            if (user.is_admin || user.occupation === 'admin') {
+              window.location.href = 'admin.html';
+            } else if (user.occupation === 'teacher') {
+              window.location.href = 'teachers.html';
+            } else {
+              window.location.href = 'dashboard.html';
+            }
+          }, 800);
+
+        } else {
+          msgBox.textContent = data.message || '❌ Invalid login credentials.';
+          msgBox.className = 'message error';
+        }
+
+      } catch (err) {
+        msgBox.textContent = '❌ Network error. Try again later.';
+        msgBox.className = 'message error';
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>
+

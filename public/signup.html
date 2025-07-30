@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign Up - SmartStudent</title>
+  <link rel="stylesheet" href="signup.css">
+  <style>
+    .hidden { display: none; }
+    form {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    label { display: block; margin: 10px 0 5px; }
+    input, select, button {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .terms { font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h2 style="text-align: center;">📝 Create Your Account</h2>
+    <form id="signupForm">
+      <!-- Your dynamic form fields go here -->
+      <!-- Include inputs with IDs: firstName, lastName, occupation, educationLevel, grade, university, phone, email, password, etc. -->
+      <!-- Include sections with IDs: studentFields, teacherFields, gradeFields, universityFields, etc. -->
+    </form>
+
+    <!-- Terms & Conditions Modal -->
+    <div id="termsPopup" class="modal hidden">
+      <div class="modal-content">
+        <h3>Terms & Conditions</h3>
+        <p>
+          By using SmartStudent, you agree to provide accurate and truthful information.
+          Any attempt to falsify your registration details may result in a permanent ban
+          and possible prosecution under our user agreement.
+        </p>
+        <p>
+          SmartStudent is committed to protecting your privacy and using your academic
+          data to enhance learning collaboration. No personal data will be shared without consent.
+        </p>
+        <p>
+          Tasks and assignments must be appropriate, relevant, and respectful of all backgrounds.
+        </p>
+        <button id="closeTermsBtn">Close</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const API_BASE = location.hostname === 'localhost'
+      ? 'http://localhost:3000'
+      : 'https://smartstudent-backend.onrender.com';
+
+    let phoneVerified = false;
+
+    function toggleOccupationFields() {
+      const occ = document.getElementById("occupation").value;
+      document.getElementById("studentFields").classList.add("hidden");
+      document.getElementById("teacherFields").classList.add("hidden");
+
+      if (occ === "student") document.getElementById("studentFields").classList.remove("hidden");
+      if (occ === "teacher") document.getElementById("teacherFields").classList.remove("hidden");
+    }
+
+    function toggleStudentLevelFields() {
+      const level = document.getElementById("educationLevel").value;
+      document.getElementById("gradeFields").classList.add("hidden");
+      document.getElementById("universityFields").classList.add("hidden");
+
+      if (level === "junior" || level === "high") {
+        document.getElementById("gradeFields").classList.remove("hidden");
+      } else if (level === "university") {
+        document.getElementById("universityFields").classList.remove("hidden");
+      }
+    }
+
+    function showTerms(e) {
+      e.preventDefault();
+      document.getElementById("termsPopup").classList.remove("hidden");
+    }
+
+    async function sendVerificationCode() {
+      const phone = document.getElementById('phone').value.trim();
+      if (!phone.match(/^\+?[0-9]{9,15}$/)) {
+        alert("Please enter a valid phone number.");
+        return;
+      }
+
+      const res = await fetch(`${API_BASE}/api/send-verification-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone })
+      });
+
+      if (res.ok) {
+        document.getElementById("codeSection").classList.remove("hidden");
+        alert("✅ Verification code sent to your phone.");
+      } else {
+        alert("❌ Failed to send verification code. Try again later.");
+      }
+    }
+
+    async function verifyCode() {
+      const phone = document.getElementById('phone').value.trim();
+      const code = document.getElementById('verificationCode').value.trim();
+
+      const res = await fetch(`${API_BASE}/api/verify-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, code })
+      });
+
+      const result = await res.json();
+
+      if (res.ok && result.verified) {
+        phoneVerified = true;
+        document.getElementById('verificationStatus').textContent = "✔ Phone number verified!";
+        document.getElementById('verificationStatus').style.color = "green";
+      } else {
+        phoneVerified = false;
+        document.getElementById('verificationStatus').textContent = "❌ Verification failed.";
+        document.getElementById('verificationStatus').style.color = "red";
+      }
+    }
+
+    document.getElementById("signupForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      if (!phoneVerified) {
+        alert("📱 Please verify your phone number before signing up.");
+        return;
+      }
+
+      const data = {
+        firstname: document.getElementById('firstName').value.trim(),
+        lastname: document.getElementById('lastName').value.trim(),
+        occupation: document.getElementById('occupation').value,
+        educationLevel: document.getElementById('educationLevel')?.value || '',
+        grade: document.getElementById('grade')?.value || '',
+        schoolName: document.getElementById('schoolName')?.value || '',
+        university: document.getElementById('university')?.value || '',
+        uniLevel: document.getElementById('uniLevel')?.value || '',
+        program: document.getElementById('program')?.value || '',
+        teacherSchool: document.getElementById('teacherSchool')?.value || '',
+        teacherGrade: document.getElementById('teacherGrade')?.value || '',
+        phone: document.getElementById('phone').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        password: document.getElementById('password').value
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/api/signup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await res.json();
+
+        if (res.ok) {
+          alert('🎉 Your account was created successfully!');
+
+          if (result.occupation === 'admin') {
+            window.location.href = 'admin.html';
+          } else if (result.occupation === 'teacher') {
+            window.location.href = 'teachers.html';
+          } else {
+            window.location.href = 'dashboard.html';
+          }
+        } else {
+          alert(`❌ Signup failed: ${result.error || 'Unknown error'}`);
+        }
+
+      } catch (err) {
+        console.error('Signup error:', err);
+        alert('❌ Network or server error.');
+      }
+    });
+
+    document.getElementById("closeTermsBtn").addEventListener("click", () => {
+      document.getElementById("termsPopup").classList.add("hidden");
+    });
+  </script>
+</body>
+</html>

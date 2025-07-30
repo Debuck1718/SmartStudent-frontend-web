@@ -1,0 +1,167 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>SmartStudentAct – Home</title>
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- SEO + Meta -->
+  <meta name="description" content="SmartStudentAct helps students track assignments, manage budgets, and earn rewards. A smart way to succeed in school and beyond." />
+  <meta name="theme-color" content="#4a90e2" />
+
+  <!-- Favicon + PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="app-icon.png" sizes="192x192" type="image/png" />
+
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f0f4f8;
+      color: #333;
+    }
+
+    .content {
+      max-width: 800px;
+      margin: auto;
+      padding: 1rem;
+    }
+
+    header {
+      background: #4a90e2;
+      color: white;
+      text-align: center;
+      padding: 2rem 1rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+
+    header:hover {
+      background: #357abd;
+    }
+
+    h1 {
+      margin-bottom: 0.5rem;
+      font-size: 2rem;
+    }
+
+    main {
+      padding: 1.5rem;
+      background: #fff;
+      border-radius: 10px;
+      margin-top: 1.5rem;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    #about {
+      background: #f4f4f4;
+      margin-top: 2rem;
+      padding: 1.5rem;
+      border-radius: 8px;
+    }
+
+    .btn {
+      display: inline-block;
+      background: #4a90e2;
+      color: white;
+      padding: 0.6rem 1.2rem;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: bold;
+      font-size: 1rem;
+      transition: background 0.3s ease;
+    }
+
+    .btn:hover {
+      background: #357abd;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #777;
+      padding: 1.5rem 0;
+    }
+
+    footer a {
+      color: #4a90e2;
+      text-decoration: none;
+      margin: 0 0.5rem;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+
+  <script>
+    const API_BASE = location.hostname === 'localhost'
+      ? 'http://localhost:3000'
+      : 'https://smartstudent-backend.onrender.com';
+
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(reg => console.log('✅ Service Worker registered:', reg))
+          .catch(err => console.error('❌ Service Worker registration failed:', err));
+      });
+    }
+  </script>
+</head>
+<body>
+  <div class="content">
+    <!-- 🌟 HERO HEADER -->
+    <header>
+      <h1>SmartStudentAct</h1>
+      <p>Track your goals. Budget smart.</p>
+    </header>
+
+    <!-- 🚀 MAIN WELCOME -->
+    <main>
+      <h2>Welcome to SmartStudentAct 📚</h2>
+      <p>
+        SmartStudentAct is designed to help you manage your assignments, track your goals,
+        control your budget, and earn exciting rewards based on your academic and financial achievements.
+      </p>
+      <p>
+        Whether you're a student looking to stay organized or a teacher supporting your class,
+        SmartStudentAct connects you with the right tools for smart success.
+      </p>
+
+      <div style="margin-top: 2rem;">
+        <a href="login.html" class="btn" role="button" aria-label="Sign in to your SmartStudentAct account">🔐 Sign In</a>
+        <a href="signup.html" class="btn" role="button" aria-label="Create a SmartStudentAct account" style="margin-left: 1rem;">📝 Sign Up</a>
+      </div>
+    </main>
+
+    <!-- 💡 ABOUT SECTION -->
+    <section id="about">
+      <h2>About SmartStudentAct</h2>
+      <p>
+        SmartStudentAct is a student-focused app designed to help you stay on top
+        of your assignments, budget wisely, and track personal goals. Whether you're tracking due
+        dates or saving up for your next big project, we’ve got your back.
+      </p>
+    </section>
+  </div>
+
+  <!-- ⚙️ FOOTER -->
+  <footer>
+    <p>&copy; <span id="year"></span> SmartStudentAct | Built with 💙 for learners</p>
+    <nav>
+      <a href="#about">About</a> |
+      <a href="mailto:support@smartstudentact.app">Contact</a>
+    </nav>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+  <script src="script.js"></script>
+</body>
+</html>

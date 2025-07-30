@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SmartStudent – Dashboard</title>
+
+  <!-- main stylesheet -->
+  <link rel="stylesheet" href="dashboard.css">
+
+  <style>
+    /* ---------- fixed top‑bar ---------- */
+    .topbar{position:fixed;top:0;left:0;width:100%;background:#f0f0f0;
+      border-bottom:1px solid #ccc;display:flex;justify-content:space-between;
+      align-items:center;padding:.75rem 1rem;z-index:1000}
+    .topbar button{font-size:1.6rem;background:none;border:none;cursor:pointer}
+    .logout-btn{background:#f44336;color:#fff;padding:.4rem 1rem;border-radius:5px;border:none}
+    .logout-btn:hover{background:#d9362c}
+
+    /* ---------- mobile nav ---------- */
+    .mobile-nav ul{list-style:none;margin:0;padding:.5rem 1rem;background:#f9f9f9;
+      display:none;position:absolute;top:58px;left:0;width:100%;border-top:1px solid #ccc}
+    .mobile-nav ul.show{display:block}
+
+    header{margin-top:80px;text-align:center;padding:1rem}
+    main{padding:1rem 1rem 5rem}
+    section{margin-bottom:2rem}
+
+    /* reminder toast                                                         */
+    .reminder-popup{position:fixed;bottom:1rem;right:1rem;background:#ff9800;color:#fff;
+      padding:1rem;border-radius:5px;box-shadow:0 0 10px rgba(0,0,0,.3);z-index:9999;
+      font-weight:bold}
+
+    /* footer                                                                 */
+    footer{text-align:center;padding:1rem;background:#f8f8f8;border-top:1px solid #ccc}
+    footer p{margin:0;font-size:.9rem;color:#555}
+  </style>
+</head>
+<body>
+
+  <!-- ══════════ TOP BAR ══════════ -->
+  <div class="topbar">
+    <button id="menuToggle">☰</button>
+    <button id="logoutBtn" class="logout-btn">🚪 Logout</button>
+  </div>
+
+  <!-- ══════════ MOBILE NAV ══════════ -->
+  <nav class="mobile-nav">
+    <ul id="navMenu">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="financial.html">Financial</a></li>
+      <li><a href="rewards.html">Rewards</a></li>
+    </ul>
+  </nav>
+
+  <!-- ══════════ HEADER ══════════ -->
+  <header>
+    <h1>SmartStudent</h1>
+    <p>Track your assignments and budget smartly</p>
+  </header>
+
+  <!-- ══════════ MAIN CONTENT ══════════ -->
+  <main>
+    <!-- assignments -->
+    <section>
+      <h2>📘 Assignments</h2>
+      <ul id="assignmentList"></ul>
+      <button onclick="openModal('taskModal')">+ Add Assignment</button>
+    </section>
+
+    <!-- budget -->
+    <section>
+      <h2>💰 Budget</h2>
+      <ul id="budgetList"></ul>
+      <button onclick="openModal('budgetModal')">+ Add Expense</button>
+    </section>
+
+    <!-- goal -->
+    <section>
+      <h2>🎯 Weekly Goal</h2>
+      <input type="text" id="goalInput" placeholder="Set your goal for this week…">
+      <button onclick="saveGoal()">Save Goal</button>
+      <p id="savedGoal" style="margin-top:10px;"></p>
+    </section>
+
+    <!-- rewards -->
+    <section>
+      <h2>🏆 Rewards</h2>
+      <ul id="rewardList"></ul>
+    </section>
+
+    <!-- teachers -->
+    <section>
+      <h3>👩‍🏫 Teachers You've Interacted With</h3>
+      <ul id="teacherList"></ul>
+    </section>
+  </main>
+
+  <!-- ══════════ MODALS ══════════ -->
+  <!-- assignment -->
+  <div id="taskModal" class="modal">
+    <div class="modal-content">
+      <h3>Add Assignment</h3>
+      <input type="text"  id="taskTitle"   placeholder="Title">
+      <input type="text"  id="taskSubject" placeholder="Subject">
+      <input type="date"  id="taskDueDate">
+      <input type="time"  id="taskDueTime">  <!-- NEW -->
+      <button onclick="addTask()">Save</button>
+      <button onclick="closeModal('taskModal')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- budget -->
+  <div id="budgetModal" class="modal">
+    <div class="modal-content">
+      <h3>Add Expense</h3>
+      <input  type="text"   id="expenseTitle"  placeholder="Item or Goal">
+      <input  type="number" id="expenseAmount" placeholder="Amount">
+      <select id="expenseType">
+        <option value="expense">Expense</option>
+        <option value="goal">Saving Goal</option>
+      </select>
+      <button onclick="addExpense()">Save</button>
+      <button onclick="closeModal('budgetModal')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ══════════ FOOTER ══════════ -->
+  <footer>
+    <p>&copy; <span id="year"></span> SmartStudent. Empowering students everywhere.</p>
+  </footer>
+
+  <!-- ══════════ JS ══════════ -->
+  <script>
+    /* ------------------------------------------------------------------
+       Config
+    ------------------------------------------------------------------ */
+    const API_BASE =
+      location.hostname === 'localhost'
+        ? 'http://localhost:3000'
+        : 'http://10.0.2.2:3000';        // Android‑emulator loopback
+
+    /* ------------------------------------------------------------------
+       Global helpers
+    ------------------------------------------------------------------ */
+    const $ = id => document.getElementById(id);
+
+    function openModal(id){ $(id).style.display='flex'; }
+    function closeModal(id){ $(id).style.display='none'; }
+
+    /* ------------------------------------------------------------------
+       Session / navigation
+    ------------------------------------------------------------------ */
+    document.addEventListener('DOMContentLoaded', async () => {
+      /* mobile nav toggle */
+      $('menuToggle').onclick = () => $('navMenu').classList.toggle('show');
+
+      /* logout */
+      $('logoutBtn').onclick = async () => {
+        await fetch(`${API_BASE}/api/logout`,{method:'POST',credentials:'include'});
+        location.href = 'login.html';
+      };
+
+      /* year in footer */
+      $('year').textContent = new Date().getFullYear();
+
+      /* session check */
+      const s = await fetch(`${API_BASE}/api/session`,{credentials:'include'}).then(r=>r.json());
+      if(!s.loggedIn) return location.href='login.html';
+      if(s.user.occupation==='teacher') return location.href='teachers.html';
+
+      /* load everything */
+      await Promise.all([
+        loadTeachers(s.user),
+        loadAssignments(),
+        loadExpenses(),
+        loadGoals(),
+        loadRewards()
+      ]);
+    });
+
+    /* ------------------------------------------------------------------
+       ASSIGNMENTS
+    ------------------------------------------------------------------ */
+    async function addTask(){
+      const title   = $('taskTitle').value.trim();
+      const subject = $('taskSubject').value.trim();
+      const date    = $('taskDueDate').value;
+      const time    = $('taskDueTime').value;
+      if(!title||!subject||!date) return alert('All fields (except time) required');
+
+      const dueDateTime = time ? `${date}T${time}:00` : `${date}T23:59:00`;
+
+      /* save to server */
+      const res = await fetch(`${API_BASE}/api/assignments`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        credentials:'include',
+        body:JSON.stringify({title,subject,due_datetime:dueDateTime})
+      });
+      if(!res.ok) return alert('Server error, try again');
+      /* ask server to queue push notifications (email/SMS) */
+      await fetch(`${API_BASE}/api/reminders/register`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        credentials:'include',
+        body:JSON.stringify({title,due_datetime:dueDateTime})
+      });
+
+      /* refresh list & local alarms */
+      closeModal('taskModal');
+      ['taskTitle','taskSubject','taskDueDate','taskDueTime'].forEach(id=>$(id).value='');
+      await loadAssignments();
+    }
+
+    async function loadAssignments(){
+      const tasks = await fetch(`${API_BASE}/api/assignments`, {credentials:'include'})
+                    .then(r=>r.json());
+
+      const ul = $('assignmentList'); ul.innerHTML='';
+      tasks.forEach(t=>{
+        const li=document.createElement('li');
+        li.textContent = `${t.title} – ${t.subject} (due ${new Date(t.due_datetime).toLocaleString()})`;
+        ul.appendChild(li);
+      });
+
+      checkTaskReminders(tasks);
+      scheduleLocalAlarms(tasks);
+    }
+
+    /* ------------------------------------------------------------------
+       LOCAL 1‑day and 2‑hour reminders
+    ------------------------------------------------------------------ */
+    function checkTaskReminders(tasks){
+      const today = new Date();
+      const tomorrow = new Date(today); tomorrow.setDate(today.getDate()+1);
+
+      tasks.forEach(t=>{
+        const due = new Date(t.due_datetime);
+        if(due.toDateString()===tomorrow.toDateString()){
+          showReminderPopup(`Reminder: “${t.title}” is due tomorrow!`);
+        }
+      });
+    }
+
+    /* 2‑hour alarm (runs once per page‑load; persisted in localStorage) */
+    function scheduleLocalAlarms(tasks){
+      const now = Date.now();
+      const stored = JSON.parse(localStorage.getItem('scheduledAlarms')||'{}');
+
+      tasks.forEach(t=>{
+        if(stored[t.id]) return;        // already scheduled
+        const due = new Date(t.due_datetime).getTime();
+        const trigger = due - 2*60*60*1000;  // two hours before
+        const delay = trigger - now;
+        if(delay<=0) return;            // too late
+        stored[t.id]=true;
+        setTimeout(()=>showReminderPopup(`⏰ “${t.title}” is due in 2 hours!`),delay);
+      });
+      localStorage.setItem('scheduledAlarms',JSON.stringify(stored));
+    }
+
+    function showReminderPopup(msg){
+      const box=document.createElement('div');
+      box.className='reminder-popup'; box.textContent=msg;
+      document.body.appendChild(box);
+      setTimeout(()=>box.remove(),10000);
+    }
+
+    /* ------------------------------------------------------------------
+       Other loaders – keep your existing implementations or migrate them
+    ------------------------------------------------------------------ */
+    async function loadExpenses(){ /* … */ }
+    async function loadGoals(){    /* … */ }
+    async function loadRewards(){  /* … */ }
+
+    /* teachers list */
+    async function loadTeachers(user){
+      if(user.occupation!=='student') return;
+      const list=await fetch(`${API_BASE}/api/student/teachers?school=${encodeURIComponent(user.school_name)}&student=${encodeURIComponent(user.email)}`)
+                  .then(r=>r.json());
+      const ul=$('teacherList'); ul.innerHTML='';
+      list.forEach(t=>{
+        const li=document.createElement('li');
+        li.textContent=`${t.firstname} ${t.lastname}`;
+        ul.appendChild(li);
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rewards & Achievements</title>
+  <link rel="stylesheet" href="css/rewards.css">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 1rem; background: #f9f9f9; }
+    nav a { text-decoration: none; color: #333; }
+    h2, h3 { color: #222; }
+    section { margin: 2rem 0; background: #fff; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+    ul { list-style: none; padding-left: 1rem; }
+    ul li::before { content: "🎯 "; margin-right: 0.5rem; }
+    .highlight-message {
+      background: #e0f7fa;
+      padding: 1rem;
+      border-left: 6px solid #26c6da;
+      font-weight: bold;
+      color: #006064;
+      border-radius: 5px;
+    }
+    .badge-earned {
+      background: #c8e6c9;
+      padding: 0.5rem;
+      margin: 0.3rem 0;
+      border-radius: 4px;
+    }
+    .term-reward-section ul li::before {
+      content: "🎁 ";
+    }
+  </style>
+</head>
+<body>
+  <nav><a href="dashboard.html">← Back to Dashboard</a></nav>
+
+  <main>
+    <h2>🏆 Your Achievements</h2>
+
+    <!-- Weekly Encouragement -->
+    <section id="weeklyMessage" class="highlight-message"></section>
+
+    <!-- Achievement Badges -->
+    <section>
+      <h3>🎖️ Achievement Badges</h3>
+      <ul id="badgeList"></ul>
+    </section>
+
+    <!-- Term / Consistency Rewards -->
+    <section id="termSection" class="term-reward-section">
+      <h3>📚 Term Performance</h3>
+      <p id="termSummary"></p>
+      <div id="termRewards"></div>
+    </section>
+
+    <!-- Suggested Treats -->
+    <section>
+      <h3>🎁 Treat Suggestions</h3>
+      <ul>
+        <li>🌴 Vacation trip to historical or beach resorts</li>
+        <li>🍽️ Weekend Date Treats at student-friendly restaurants</li>
+        <li>🎓 Certificates of Achievement</li>
+        <li>🎬 Movie night or amusement park visit</li>
+        <li>🎉 Hangouts & Social mixers for consistent achievers</li>
+        <li>🏅 Badges: "Goal Crusher", "Budget Boss", "Assignment Ace"</li>
+      </ul>
+    </section>
+  </main>
+
+  <script>
+    // 🔁 Placeholder progress (replace with API later)
+    const user = {
+      name: "John Doe",
+      level: "High School", // or "University", "Worker"
+      weeklyGoalsAchieved: true,
+      weeklyAssignmentsDone: true,
+      weeklyBudgetMet: true,
+      termPercentage: 87,
+      consistentMonths: 6
+    };
+
+    // ✅ Weekly Motivation
+    const weeklyMessage = document.getElementById('weeklyMessage');
+    if (user.weeklyGoalsAchieved && user.weeklyAssignmentsDone && user.weeklyBudgetMet) {
+      weeklyMessage.innerHTML = `
+        🎉 Congratulations <strong>${user.name}</strong>!<br>
+        You've completed your assignments, met your budget, and crushed your goal this week!
+      `;
+    } else {
+      weeklyMessage.innerHTML = `Keep pushing ${user.name}! You're closer to your next badge. 💪`;
+    }
+
+    // ✅ Badges
+    const badgeList = document.getElementById('badgeList');
+    const badges = [];
+
+    if (user.weeklyGoalsAchieved) badges.push("🏅 Goal Crusher");
+    if (user.weeklyBudgetMet) badges.push("💰 Budget Boss");
+    if (user.weeklyAssignmentsDone) badges.push("📘 Assignment Ace");
+
+    if (user.termPercentage >= 90) badges.push("🎓 Top Scholar");
+    if (user.consistentMonths >= 6) badges.push("🔥 Consistency Champ");
+
+    badges.forEach(badge => {
+      const li = document.createElement("li");
+      li.className = 'badge-earned';
+      li.textContent = badge;
+      badgeList.appendChild(li);
+    });
+
+    // ✅ Term/Consistency Rewards
+    const termSummary = document.getElementById('termSummary');
+    const termRewards = document.getElementById('termRewards');
+    const termSection = document.getElementById('termSection');
+
+    if (user.level === "High School" && user.termPercentage >= 80) {
+      termSummary.innerText = `Your term performance is ${user.termPercentage}%. 🎉 You're eligible for end-of-term rewards!`;
+      termRewards.innerHTML = `
+        <ul>
+          <li>🏖️ Vacation Package</li>
+          <li>📜 Certificate of Excellence</li>
+          <li>🍕 Pizza Treat</li>
+        </ul>
+      `;
+    } else if ((user.level === "University" || user.level === "Worker") && user.consistentMonths >= 6) {
+      termSummary.innerText = `👏 You've consistently achieved your goals for ${user.consistentMonths} months!`;
+      termRewards.innerHTML = `
+        <ul>
+          <li>🎁 Surprise Gift or Brunch</li>
+          <li>🎬 Movie Pass</li>
+          <li>🏅 Special Recognition Badge</li>
+        </ul>
+      `;
+    } else {
+      termSummary.innerText = `You're on the path to rewards! Stay consistent to unlock treats and recognition.`;
+    }
+  </script>
+</body>
+</html>
