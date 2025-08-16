@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upgrade Your Account</title>
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <!-- Main Payment Container -->
+    <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-gray-200">
+        
+        <!-- Icon and Heading -->
+        <svg class="w-16 h-16 mx-auto text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <h1 class="text-3xl font-bold text-gray-800 mt-4">Trial Ended</h1>
+        <p class="text-gray-600 mt-2">Your trial period has expired. Please upgrade to continue enjoying all features.</p>
+        
+        <!-- Payment Details -->
+        <div id="payment-details" class="mt-6 p-4 bg-blue-50 rounded-xl">
+            <!-- Amount and currency will be injected here -->
+            <p class="text-sm text-blue-800 font-semibold">Subscription Fee</p>
+            <p id="amount-text" class="text-2xl font-bold text-blue-900 mt-1">
+                Loading...
+            </p>
+        </div>
+
+        <!-- Payment Button -->
+        <button 
+            id="payButton"
+            class="w-full mt-8 py-3 px-6 rounded-full bg-blue-600 text-white font-semibold shadow-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        >
+            Proceed to Payment
+        </button>
+
+        <!-- Message/Loading area -->
+        <div id="message" class="mt-4 text-center"></div>
+        
+    </div>
+
+    <!-- Paystack Inline Script -->
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+
+    <script>
+        const payButton = document.getElementById('payButton');
+        const messageDiv = document.getElementById('message');
+        const amountText = document.getElementById('amount-text');
+
+        // Paystack public key. Replace with your actual public key from your Paystack dashboard.
+        const PAYSTACK_PUBLIC_KEY = 'pk_test_a88b5840d4f24c3c33215f79579735d49f697956';
+
+        // Base subscription fee and details to be fetched from the backend
+        let finalAmount = 0;
+        let finalCurrency = '';
+
+        /**
+         * Disables the button and shows a loading message.
+         */
+        function showLoading(text) {
+            payButton.disabled = true;
+            payButton.innerHTML = `<span class="animate-spin mr-2">&#9696;</span> ${text}`;
+        }
+
+        /**
+         * Enables the button and removes the loading message.
+         */
+        function hideLoading() {
+            payButton.disabled = false;
+            payButton.innerHTML = `Proceed to Payment`;
+        }
+
+        /**
+         * Fetches payment details from the backend.
+         */
+        async function fetchPaymentDetails() {
+            showLoading('Getting price...');
+            try {
+                const response = await fetch('http://127.0.0.1:5000/api/payment-details'); // Change URL if your backend is hosted elsewhere
+                const data = await response.json();
+
+                if (data.success) {
+                    finalAmount = data.amount;
+                    finalCurrency = data.currency;
+                    
+                    // Update the UI with the fetched price and currency
+                    amountText.textContent = `${finalCurrency} ${finalAmount.toFixed(2)}`;
+                    payButton.disabled = false; // Enable the button now that we have the amount
+                    hideLoading();
+                } else {
+                    messageDiv.innerHTML = `<p class="text-red-600">Failed to get payment details. Please try again.</p>`;
+                    hideLoading();
+                }
+            } catch (error) {
+                console.error('Error fetching payment details:', error);
+                messageDiv.innerHTML = `<p class="text-red-600">Network error. Please try again later.</p>`;
+                hideLoading();
+            }
+        }
+        
+        /**
+         * Initiates the Paystack payment process.
+         */
+        function payWithPaystack() {
+            // Mock user details and a random unique reference for the transaction
+            const userEmail = 'testuser@example.com';
+            const transactionRef = 'TX-' + Math.random().toString(36).substring(2, 15) + Date.now();
+            
+            // Amount must be in kobo/pesewas. Multiply the amount by 100.
+            const amountInPesewas = finalAmount * 100;
+
+            showLoading('Processing...');
+            
+            let handler = PaystackPop.setup({
+                key: PAYSTACK_PUBLIC_KEY,
+                email: userEmail,
+                amount: amountInPesewas,
+                currency: finalCurrency,
+                ref: transactionRef,
+                
+                // This callback function runs when the payment is successful.
+                callback: function(response) {
+                    messageDiv.innerHTML = `<p class="text-green-600 font-semibold">Payment successful! Your account has been upgraded.</p>`;
+                    messageDiv.classList.remove('text-red-600');
+                    messageDiv.classList.add('text-green-600');
+                    hideLoading();
+
+                    // Send the transaction reference to the backend for verification
+                    console.log('Payment successful. Transaction reference:', response.reference);
+                },
+                
+                // This callback runs if the user closes the payment modal.
+                onClose: function() {
+                    messageDiv.innerHTML = `<p class="text-red-600">Payment canceled. Please try again to upgrade.</p>`;
+                    messageDiv.classList.remove('text-green-600');
+                    messageDiv.classList.add('text-red-600');
+                    hideLoading();
+                },
+            });
+            handler.openIframe();
+        }
+
+        // Add a click event listener to the payment button
+        payButton.addEventListener('click', payWithPaystack);
+        
+        // Fetch the payment details as soon as the page loads
+        document.addEventListener('DOMContentLoaded', fetchPaymentDetails);
+    </script>
+</body>
+</html>

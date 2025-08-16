@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Class Students</title>
+    <!-- Use the Inter font from Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Include Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <!-- Main container matching the React Native component's structure -->
+    <div class="container bg-white p-6 rounded-lg shadow-xl max-w-2xl w-full">
+
+        <!-- Header section -->
+        <h1 class="text-3xl font-bold text-gray-800 text-center mb-6">My Class Students (Grade 5A)</h1>
+
+        <!-- Container for the students, populated by JavaScript -->
+        <div id="students-list" class="space-y-4">
+            <!-- Student items will be dynamically added here -->
+        </div>
+
+    </div>
+
+    <script>
+        // Define the data, including a placeholder image URL for each student
+        const myClassStudents = [
+            { id: 's1', name: 'Alice Johnson', grade: '5A', attendance: 'Present', imageUrl: 'https://placehold.co/100x100/A0C4FF/ffffff?text=AJ' },
+            { id: 's2', name: 'Bob Williams', grade: '5A', attendance: 'Absent', imageUrl: 'https://placehold.co/100x100/FFD8A8/000000?text=BW' },
+            { id: 's3', name: 'Carol King', grade: '5A', attendance: 'Present', imageUrl: 'https://placehold.co/100x100/B0E0E6/000000?text=CK' },
+            { id: 's4', name: 'David Lee', grade: '5A', attendance: 'Present', imageUrl: 'https://placehold.co/100x100/FFC0CB/000000?text=DL' },
+        ];
+
+        // Get the container element where students will be rendered
+        const studentsListContainer = document.getElementById('students-list');
+
+        /**
+         * Renders a single student item based on the provided student object.
+         * @param {Object} item The student data object.
+         * @returns {HTMLElement} The created HTML element for the student.
+         */
+        function createStudentItem(item) {
+            // Create a main div for the student item with flexbox for image and text
+            const studentItemDiv = document.createElement('div');
+            studentItemDiv.className = 'bg-yellow-100 p-4 rounded-lg mb-2 border-l-4 border-yellow-500 shadow-sm flex items-center space-x-4';
+
+            // Create and append the student image
+            const studentImage = document.createElement('img');
+            studentImage.className = 'h-16 w-16 rounded-full object-cover';
+            studentImage.src = item.imageUrl;
+            studentImage.alt = `Profile picture of ${item.name}`;
+            studentItemDiv.appendChild(studentImage);
+
+            // Create a div for the student details text
+            const textContentDiv = document.createElement('div');
+            textContentDiv.className = 'flex-1';
+
+            // Create and append the student name
+            const studentName = document.createElement('p');
+            studentName.className = 'text-lg font-semibold text-gray-700';
+            studentName.textContent = item.name;
+            textContentDiv.appendChild(studentName);
+
+            // Create and append grade details
+            const gradeDetails = document.createElement('p');
+            gradeDetails.className = 'text-sm text-gray-600 mt-1';
+            gradeDetails.textContent = `Grade: ${item.grade}`;
+            textContentDiv.appendChild(gradeDetails);
+
+            // Create and append attendance details
+            const attendanceDetails = document.createElement('p');
+            attendanceDetails.className = 'text-sm text-gray-600 mt-1';
+            attendanceDetails.textContent = `Attendance: ${item.attendance}`;
+            textContentDiv.appendChild(attendanceDetails);
+
+            studentItemDiv.appendChild(textContentDiv);
+
+            return studentItemDiv;
+        }
+
+        /**
+         * Renders all students in the myClassStudents array into the DOM.
+         */
+        function renderStudents() {
+            // Clear any existing content before rendering
+            studentsListContainer.innerHTML = '';
+
+            // Loop through the data and create an HTML element for each student
+            myClassStudents.forEach(student => {
+                const studentElement = createStudentItem(student);
+                studentsListContainer.appendChild(studentElement);
+            });
+        }
+
+        // Call the render function when the page loads
+        document.addEventListener('DOMContentLoaded', renderStudents);
+    </script>
+
+</body>
+</html>

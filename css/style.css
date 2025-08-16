@@ -1,0 +1,139 @@
+/* ✅ Reset and Base Layout */
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: url('/images/bg.png') no-repeat center center fixed;
+  background-size: cover;
+  position: relative;
+  color: #333;
+}
+
+/* Layer to hold all content above background */
+.content {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+  padding-bottom: 2rem;
+}
+
+/* ✅ Header */
+header {
+  background: rgba(74, 144, 226, 0.95);
+  color: white;
+  padding: 1.5rem 1rem;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  border-radius: 0 0 10px 10px;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+header p {
+  font-size: 1.1rem;
+  margin-top: 0.5rem;
+}
+
+/* ✅ Buttons */
+.btn {
+  display: inline-block;
+  background-color: #4a90e2;
+  color: white;
+  padding: 0.8rem 1.4rem;
+  margin: 0.5rem 0.5rem 0 0;
+  text-decoration: none;
+  font-size: 1.1rem;
+  border-radius: 8px;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.btn:hover {
+  background-color: #2d76c2;
+  transform: scale(1.03);
+}
+
+.btn-secondary {
+  background-color: #eee;
+  color: #333;
+}
+
+.btn-secondary:hover {
+  background-color: #ddd;
+}
+
+/* ✅ Main Content */
+main {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 10px;
+  margin: 1.5rem auto;
+  padding: 1.5rem;
+  max-width: 700px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  position: relative;
+  z-index: 1;
+}
+
+main h2 {
+  margin-top: 0;
+}
+
+/* ✅ About Section */
+#about {
+  background: rgba(255, 255, 255, 0.9);
+  margin: 1rem auto;
+  padding: 1.5rem;
+  border-radius: 10px;
+  max-width: 700px;
+  border-top: 2px solid #ccc;
+  text-align: center;
+}
+
+/* ✅ Footer */
+footer {
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 1rem;
+  font-size: 0.9rem;
+  border-top: 1px solid #ccc;
+  position: relative;
+  z-index: 1;
+}
+
+footer a {
+  color: #a2c8ff;
+  text-decoration: none;
+  margin: 0 0.5rem;
+  transition: color 0.2s ease;
+}
+
+footer a:hover {
+  text-decoration: underline;
+  color: #fff;
+}
+
+/* ✅ Responsive Enhancements */
+@media screen and (max-width: 600px) {
+  header h1 {
+    font-size: 1.5rem;
+  }
+
+  main, #about {
+    margin: 1rem;
+    padding: 1rem;
+  }
+
+  .btn {
+    font-size: 1rem;
+    padding: 0.7rem 1.2rem;
+  }
+
+  footer {
+    font-size: 0.8rem;
+  }
+}

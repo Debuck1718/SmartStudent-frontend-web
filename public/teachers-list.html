@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teachers List</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Add a custom font and base styling for the body */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center">
+
+    <main class="w-full max-w-2xl p-4 sm:p-6 lg:p-8">
+        <h1 class="text-3xl sm:text-4xl font-bold text-center text-gray-800 my-8">Teachers in Your School</h1>
+        
+        <!-- This container will be populated by JavaScript -->
+        <div id="teachers-list" class="space-y-4">
+            <!-- Teacher items will be dynamically inserted here -->
+        </div>
+
+    </main>
+
+    <!-- Main JavaScript Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // Hardcoded data mirroring the React Native code.
+            // In a real application, this would be fetched from an API.
+            const teachersData = [
+                { id: 't1', name: 'Mr. Smith', subject: 'Mathematics', email: 'smith@school.edu' },
+                { id: 't2', name: 'Ms. Johnson', subject: 'English Literature', email: 'johnson@school.edu' },
+                { id: 't3', name: 'Dr. Lee', subject: 'Science', email: 'lee@school.edu' },
+                { id: 't4', name: 'Mrs. Davis', subject: 'History', email: 'davis@school.edu' },
+                { id: 't5', name: 'Coach Brown', subject: 'Physical Education', email: 'brown@school.edu' },
+            ];
+
+            const teacherListContainer = document.getElementById('teachers-list');
+
+            /**
+             * Renders a single teacher item and appends it to the list.
+             * @param {object} teacher The teacher item object with name, subject, and email.
+             */
+            const renderTeacherItem = (teacher) => {
+                const teacherItemEl = document.createElement('div');
+                teacherItemEl.classList.add(
+                    'bg-white', 
+                    'p-4', 
+                    'rounded-lg', 
+                    'mb-3', 
+                    'border', 
+                    'border-gray-200',
+                    'shadow-sm',
+                    'hover:shadow-md',
+                    'transition-shadow'
+                );
+
+                const nameEl = document.createElement('p');
+                nameEl.classList.add('text-lg', 'font-semibold', 'text-gray-800');
+                nameEl.textContent = teacher.name;
+
+                const subjectEl = document.createElement('p');
+                subjectEl.classList.add('text-sm', 'text-gray-600', 'mt-1');
+                subjectEl.textContent = teacher.subject;
+
+                const emailEl = document.createElement('a');
+                emailEl.href = `mailto:${teacher.email}`;
+                emailEl.classList.add('text-sm', 'text-blue-600', 'hover:underline', 'mt-1', 'block');
+                emailEl.textContent = teacher.email;
+
+                teacherItemEl.appendChild(nameEl);
+                teacherItemEl.appendChild(subjectEl);
+                teacherItemEl.appendChild(emailEl);
+
+                teacherListContainer.appendChild(teacherItemEl);
+            };
+
+            // Loop through the data and render each teacher
+            teachersData.forEach(renderTeacherItem);
+        });
+    </script>
+
+</body>
+</html>
