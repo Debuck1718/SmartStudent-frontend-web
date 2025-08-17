@@ -15,8 +15,7 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f4f4f4;
-            /* Add padding to the bottom to prevent content from being hidden by the fixed tab bar */
-            padding-bottom: 70px; 
+            padding-bottom: 70px;
         }
         .modal-overlay {
             background-color: rgba(0, 0, 0, 0.6);
@@ -32,9 +31,8 @@
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
-        /* Style for the active tab */
         .tab-active {
-            color: #3498db; /* Blue color for active tab */
+            color: #3498db;
         }
     </style>
 </head>
@@ -46,7 +44,7 @@
             <i class="fas fa-bars"></i>
         </button>
         <span class="text-xl font-bold flex-1 text-center">📘 SmartStudentAct</span>
-        <button id="logout-btn" class="bg-[#e74c3c] py-2 px-4 rounded-lg font-bold shadow-md">
+        <button id="logout-btn" class="bg-[#e74c3c] py-2 px-4 rounded-lg font-bold shadow-md hover:bg-[#c0392b] transition-colors">
             Logout
         </button>
     </header>
@@ -62,7 +60,13 @@
             <button id="add-assignment-btn" class="bg-[#2ecc71] text-white py-3 px-6 rounded-lg font-bold w-full mb-4 hover:bg-[#27a760] transition-colors">
                 + Add Assignment
             </button>
-            <p class="italic text-gray-500 text-center">No assignments added yet.</p>
+            <div id="assignments-list" class="space-y-4">
+                <!-- Assignments will be dynamically populated here -->
+                <p class="italic text-gray-500 text-center">No assignments added yet.</p>
+            </div>
+            <div id="assignments-loading" class="text-center mt-4 hidden">
+                <i class="fas fa-spinner fa-spin text-3xl text-gray-500"></i>
+            </div>
         </section>
 
         <!-- BUDGET SECTION -->
@@ -71,7 +75,13 @@
             <button id="add-budget-btn" class="bg-[#2ecc71] text-white py-3 px-6 rounded-lg font-bold w-full mb-4 hover:bg-[#27a760] transition-colors">
                 + Add Expense
             </button>
-            <p class="italic text-gray-500 text-center">No budget entries yet.</p>
+            <div id="budget-list" class="space-y-4">
+                <!-- Budget entries will be dynamically populated here -->
+                <p class="italic text-gray-500 text-center">No budget entries yet.</p>
+            </div>
+            <div id="budget-loading" class="text-center mt-4 hidden">
+                <i class="fas fa-spinner fa-spin text-3xl text-gray-500"></i>
+            </div>
         </section>
 
         <!-- WEEKLY GOAL SECTION -->
@@ -80,7 +90,7 @@
             <div class="space-y-4">
                 <input type="text" id="goal-input" placeholder="Your weekly goal" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-base">
                 <p id="goal-error" class="text-red-500 text-sm hidden"></p>
-                <button id="save-goal-btn" class="bg-[#3498db] text-white py-3 px-6 rounded-lg font-bold w-full hover:bg-[#2980b9] transition-colors">
+                <button id="save-goal-btn" class="bg-[#3498db] text-white py-3 px-6 rounded-lg font-bold w-full hover:bg-[#2980b9] transition-colors relative">
                     Save Goal
                 </button>
                 <p id="saved-goal-text" class="text-green-600 font-bold text-center mt-2 hidden"></p>
@@ -236,6 +246,12 @@
         const goalErrorEl = document.getElementById('goal-error');
         const savedGoalText = document.getElementById('saved-goal-text');
         
+        // Dynamic content containers
+        const assignmentsList = document.getElementById('assignments-list');
+        const budgetList = document.getElementById('budget-list');
+        const assignmentsLoading = document.getElementById('assignments-loading');
+        const budgetLoading = document.getElementById('budget-loading');
+
         // Modal and Form Elements
         const assignmentModal = document.getElementById('assignment-modal');
         const budgetModal = document.getElementById('budget-modal');
@@ -267,8 +283,6 @@
 
         // --- State Variables ---
         let alertConfirmAction = null;
-        let isSavingAssignment = false;
-        let isSavingBudget = false;
 
         // --- Helper Functions ---
 
@@ -313,8 +327,122 @@
             alertConfirmAction = null;
         };
 
-        // --- Form Validation Functions ---
+        // --- API & Data Handling Functions ---
 
+        /**
+         * Simulates a network request to an API.
+         * @param {string} endpoint The API endpoint URL.
+         * @param {object} options Fetch options.
+         * @returns {Promise<object>} A promise that resolves with the parsed JSON response.
+         */
+        const apiCall = async (endpoint, options = {}) => {
+            const defaultHeaders = {
+                'Content-Type': 'application/json',
+            };
+            
+            const response = await fetch(endpoint, {
+                ...options,
+                headers: {
+                    ...defaultHeaders,
+                    ...options.headers,
+                },
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'API call failed');
+            }
+
+            return await response.json();
+        };
+
+        /**
+         * Fetches and displays assignments.
+         */
+        const fetchAssignments = async () => {
+            assignmentsLoading.classList.remove('hidden');
+            assignmentsList.innerHTML = '';
+            try {
+                // Example: Fetching from a hypothetical local API endpoint
+                const assignments = await apiCall('http://172.20.10.10:4000/api/students/assignments');
+                if (assignments.length === 0) {
+                    assignmentsList.innerHTML = '<p class="italic text-gray-500 text-center">No assignments added yet.</p>';
+                } else {
+                    assignments.forEach(assignment => {
+                        const div = document.createElement('div');
+                        div.className = 'bg-gray-50 p-4 rounded-lg flex justify-between items-center shadow-sm';
+                        div.innerHTML = `
+                            <div>
+                                <h4 class="font-semibold text-lg">${assignment.title}</h4>
+                                <p class="text-sm text-gray-600">${assignment.subject}</p>
+                            </div>
+                            <span class="text-xs text-gray-400">Due: ${new Date(assignment.dueDate).toLocaleDateString()}</span>
+                        `;
+                        assignmentsList.appendChild(div);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to fetch assignments:', error);
+                assignmentsList.innerHTML = `<p class="text-red-500 text-center">Failed to load assignments.</p>`;
+            } finally {
+                assignmentsLoading.classList.add('hidden');
+            }
+        };
+
+        /**
+         * Fetches and displays budget entries.
+         */
+        const fetchBudget = async () => {
+            budgetLoading.classList.remove('hidden');
+            budgetList.innerHTML = '';
+            try {
+                // Example: Fetching from a hypothetical local API endpoint
+                const budgetEntries = await apiCall('http://172.20.10.10:4000/api/students/budget');
+                if (budgetEntries.length === 0) {
+                    budgetList.innerHTML = '<p class="italic text-gray-500 text-center">No budget entries yet.</p>';
+                } else {
+                    budgetEntries.forEach(entry => {
+                        const div = document.createElement('div');
+                        const isIncome = entry.amount > 0;
+                        const color = isIncome ? 'text-green-600' : 'text-red-600';
+                        div.className = 'bg-gray-50 p-4 rounded-lg flex justify-between items-center shadow-sm';
+                        div.innerHTML = `
+                            <div>
+                                <h4 class="font-semibold text-lg">${entry.title}</h4>
+                                <p class="text-sm text-gray-600">${entry.type}</p>
+                            </div>
+                            <span class="font-bold ${color}">${isIncome ? '+' : '-'}${Math.abs(entry.amount).toFixed(2)} GHS</span>
+                        `;
+                        budgetList.appendChild(div);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to fetch budget entries:', error);
+                budgetList.innerHTML = `<p class="text-red-500 text-center">Failed to load budget entries.</p>`;
+            } finally {
+                budgetLoading.classList.add('hidden');
+            }
+        };
+
+        /**
+         * Fetches and displays the weekly goal.
+         */
+        const fetchGoal = async () => {
+            try {
+                const goal = await apiCall('http://172.20.10.10:4000/api/students/goal');
+                if (goal && goal.text) {
+                    goalInput.value = goal.text;
+                    savedGoalText.textContent = `Saved: ${goal.text}`;
+                    savedGoalText.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Failed to fetch goal:', error);
+                savedGoalText.textContent = `Failed to load goal.`;
+                savedGoalText.classList.remove('hidden');
+            }
+        };
+
+        // --- Form Validation Functions ---
         const validateGoal = () => {
             const goal = goalInput.value.trim();
             if (!goal) {
@@ -374,14 +502,30 @@
 
         // --- Event Handlers ---
 
-        const handleSaveGoal = () => {
-            if (validateGoal()) {
-                const goal = goalInput.value.trim();
-                savedGoalText.textContent = `Saved: ${goal}`;
-                savedGoalText.classList.remove('hidden');
-                showAlert('Goal Saved!', `Your weekly goal: ${goal}`);
-            } else {
+        const handleSaveGoal = async () => {
+            if (!validateGoal()) {
                 showAlert('Validation Error', 'Please enter a valid weekly goal.');
+                return;
+            }
+            
+            const goal = goalInput.value.trim();
+            saveGoalBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            saveGoalBtn.disabled = true;
+
+            try {
+                const response = await apiCall('http://172.20.10.10:4000/api/students/goal', {
+                    method: 'POST',
+                    body: JSON.stringify({ goal: goal })
+                });
+                showAlert('Goal Saved!', `Your weekly goal: ${response.goal}`);
+                savedGoalText.textContent = `Saved: ${response.goal}`;
+                savedGoalText.classList.remove('hidden');
+            } catch (error) {
+                console.error('Failed to save goal:', error);
+                showAlert('Error', 'Failed to save goal. Please try again.');
+            } finally {
+                saveGoalBtn.innerHTML = 'Save Goal';
+                saveGoalBtn.disabled = false;
             }
         };
 
@@ -391,23 +535,32 @@
                 return;
             }
 
-            isSavingAssignment = true;
             saveAssignmentBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
             saveAssignmentBtn.disabled = true;
 
             try {
-                // TODO: Replace with actual API call to save assignment
-                await new Promise(resolve => setTimeout(resolve, 1500));
+                const newAssignment = {
+                    title: assignmentTitleInput.value.trim(),
+                    subject: assignmentSubjectInput.value.trim(),
+                    dueDate: new Date().toISOString().split('T')[0] // Example date
+                };
+                
+                await apiCall('http://172.20.10.10:4000/api/students/assignments', {
+                    method: 'POST',
+                    body: JSON.stringify(newAssignment)
+                });
+                
                 showAlert('Success', 'Assignment added successfully!');
                 hideModal(assignmentModal);
                 assignmentTitleInput.value = '';
                 assignmentSubjectInput.value = '';
                 assignmentTitleError.classList.add('hidden');
                 assignmentSubjectError.classList.add('hidden');
+                await fetchAssignments(); // Refresh the list
             } catch (error) {
+                console.error('Failed to save assignment:', error);
                 showAlert('Error', 'Failed to save assignment. Please try again.');
             } finally {
-                isSavingAssignment = false;
                 saveAssignmentBtn.innerHTML = 'Save';
                 saveAssignmentBtn.disabled = false;
             }
@@ -419,23 +572,32 @@
                 return;
             }
 
-            isSavingBudget = true;
             saveBudgetBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
             saveBudgetBtn.disabled = true;
 
             try {
-                // TODO: Replace with actual API call to save budget
-                await new Promise(resolve => setTimeout(resolve, 1500));
+                const newBudget = {
+                    title: budgetTitleInput.value.trim(),
+                    amount: parseFloat(budgetAmountInput.value.trim()),
+                    type: 'expense' // Simplified for this example
+                };
+
+                await apiCall('http://172.20.10.10:4000/api/students/budget', {
+                    method: 'POST',
+                    body: JSON.stringify(newBudget)
+                });
+                
                 showAlert('Success', 'Budget entry added successfully!');
                 hideModal(budgetModal);
                 budgetTitleInput.value = '';
                 budgetAmountInput.value = '';
                 budgetTitleError.classList.add('hidden');
                 budgetAmountError.classList.add('hidden');
+                await fetchBudget(); // Refresh the list
             } catch (error) {
+                console.error('Failed to save budget entry:', error);
                 showAlert('Error', 'Failed to save budget entry. Please try again.');
             } finally {
-                isSavingBudget = false;
                 saveBudgetBtn.innerHTML = 'Save';
                 saveBudgetBtn.disabled = false;
             }
@@ -464,7 +626,7 @@
             const data = {
                 labels: ['Expenses', 'Savings'],
                 datasets: [{
-                    data: [180, 100],
+                    data: [180, 100], // These values should also be fetched from an API
                     backgroundColor: ['#2196F3', '#4CAF50'],
                 }]
             };
@@ -494,14 +656,18 @@
             });
         };
 
-        // --- Event Listeners ---
-        document.addEventListener('DOMContentLoaded', () => {
+        // --- Event Listeners and Initial Load ---
+        document.addEventListener('DOMContentLoaded', async () => {
             setupChart();
+            await Promise.all([
+                fetchAssignments(),
+                fetchBudget(),
+                fetchGoal()
+            ]);
         });
 
         menuBtn.addEventListener('click', () => {
             showModal(menuModal);
-            // Add a small delay for the slide-in animation
             setTimeout(() => {
                 menuContent.classList.remove('-translate-x-full');
             }, 10);
@@ -511,10 +677,9 @@
             menuContent.classList.add('-translate-x-full');
             setTimeout(() => {
                 hideModal(menuModal);
-            }, 300); // Wait for animation to finish
+            }, 300);
         });
         
-        // Clicks outside the menu also close it
         menuModal.addEventListener('click', (e) => {
             if (e.target === menuModal) {
                 menuContent.classList.add('-translate-x-full');
@@ -543,7 +708,6 @@
             }
         });
         alertCancelBtn.addEventListener('click', closeAlert);
-
     </script>
 
 </body>

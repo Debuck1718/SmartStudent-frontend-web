@@ -14,6 +14,17 @@
         body {
             font-family: 'Inter', sans-serif;
         }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
@@ -22,26 +33,21 @@
     <div class="container bg-white p-6 rounded-lg shadow-xl max-w-2xl w-full">
 
         <!-- Header section -->
-        <h1 class="text-3xl font-bold text-gray-800 text-center mb-6">My Class Students (Grade 5A)</h1>
+        <h1 class="text-3xl font-bold text-gray-800 text-center mb-6">My Class Students</h1>
 
         <!-- Container for the students, populated by JavaScript -->
-        <div id="students-list" class="space-y-4">
-            <!-- Student items will be dynamically added here -->
+        <div id="content-area">
+            <!-- Loading, Error, or Student list will be dynamically added here -->
         </div>
 
     </div>
 
     <script>
-        // Define the data, including a placeholder image URL for each student
-        const myClassStudents = [
-            { id: 's1', name: 'Alice Johnson', grade: '5A', attendance: 'Present', imageUrl: 'https://placehold.co/100x100/A0C4FF/ffffff?text=AJ' },
-            { id: 's2', name: 'Bob Williams', grade: '5A', attendance: 'Absent', imageUrl: 'https://placehold.co/100x100/FFD8A8/000000?text=BW' },
-            { id: 's3', name: 'Carol King', grade: '5A', attendance: 'Present', imageUrl: 'https://placehold.co/100x100/B0E0E6/000000?text=CK' },
-            { id: 's4', name: 'David Lee', grade: '5A', attendance: 'Present', imageUrl: 'https://placehold.co/100x100/FFC0CB/000000?text=DL' },
-        ];
+        // Define the API endpoint for fetching the teacher's own class students
+        const API_ENDPOINT = '/teacher/students/my-class';
 
-        // Get the container element where students will be rendered
-        const studentsListContainer = document.getElementById('students-list');
+        // Get the container element where content will be rendered
+        const contentArea = document.getElementById('content-area');
 
         /**
          * Renders a single student item based on the provided student object.
@@ -51,13 +57,18 @@
         function createStudentItem(item) {
             // Create a main div for the student item with flexbox for image and text
             const studentItemDiv = document.createElement('div');
-            studentItemDiv.className = 'bg-yellow-100 p-4 rounded-lg mb-2 border-l-4 border-yellow-500 shadow-sm flex items-center space-x-4';
+            // The class name dynamically changes based on attendance. Attendance status is not
+            // returned by the backend route provided, so this part of the logic has been
+            // commented out. You may add it back if you extend the backend.
+            const borderColor = 'border-blue-500'; // item.attendance === 'Present' ? 'border-green-500' : 'border-red-500';
+            const bgColor = 'bg-blue-50'; // item.attendance === 'Present' ? 'bg-green-50' : 'bg-red-50';
+            studentItemDiv.className = `p-4 rounded-lg mb-2 border-l-4 ${borderColor} ${bgColor} shadow-sm flex items-center space-x-4`;
 
             // Create and append the student image
             const studentImage = document.createElement('img');
             studentImage.className = 'h-16 w-16 rounded-full object-cover';
-            studentImage.src = item.imageUrl;
-            studentImage.alt = `Profile picture of ${item.name}`;
+            studentImage.src = item.imageUrl || `https://placehold.co/100x100/A0C4FF/ffffff?text=${item.firstname.charAt(0)}${item.lastname.charAt(0)}`;
+            studentImage.alt = `Profile picture of ${item.firstname} ${item.lastname}`;
             studentItemDiv.appendChild(studentImage);
 
             // Create a div for the student details text
@@ -67,7 +78,7 @@
             // Create and append the student name
             const studentName = document.createElement('p');
             studentName.className = 'text-lg font-semibold text-gray-700';
-            studentName.textContent = item.name;
+            studentName.textContent = `${item.firstname} ${item.lastname}`;
             textContentDiv.appendChild(studentName);
 
             // Create and append grade details
@@ -75,12 +86,15 @@
             gradeDetails.className = 'text-sm text-gray-600 mt-1';
             gradeDetails.textContent = `Grade: ${item.grade}`;
             textContentDiv.appendChild(gradeDetails);
-
-            // Create and append attendance details
+            
+            // Attendance details have been commented out as they are not in the backend response.
+            /*
             const attendanceDetails = document.createElement('p');
-            attendanceDetails.className = 'text-sm text-gray-600 mt-1';
+            const attendanceColor = item.attendance === 'Present' ? 'text-green-600' : 'text-red-600';
+            attendanceDetails.className = `text-sm font-medium ${attendanceColor} mt-1`;
             attendanceDetails.textContent = `Attendance: ${item.attendance}`;
             textContentDiv.appendChild(attendanceDetails);
+            */
 
             studentItemDiv.appendChild(textContentDiv);
 
@@ -88,22 +102,74 @@
         }
 
         /**
-         * Renders all students in the myClassStudents array into the DOM.
+         * Fetches students from the backend and renders them.
          */
-        function renderStudents() {
-            // Clear any existing content before rendering
-            studentsListContainer.innerHTML = '';
+        async function fetchStudentsAndRender() {
+            // Display a loading indicator while fetching data
+            contentArea.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-12">
+                    <div class="animate-spin rounded-full h-12 w-12 border-4 border-t-4 border-gray-200 border-t-blue-500"></div>
+                    <p class="ml-4 text-gray-500 mt-4">Loading your class students...</p>
+                </div>
+            `;
+            
+            try {
+                // Get the JWT token from client-side storage (e.g., localStorage)
+                const jwtToken = localStorage.getItem('jwtToken');
 
-            // Loop through the data and create an HTML element for each student
-            myClassStudents.forEach(student => {
-                const studentElement = createStudentItem(student);
-                studentsListContainer.appendChild(studentElement);
-            });
+                if (!jwtToken) {
+                    throw new Error('No authentication token found. Please log in.');
+                }
+                
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // Add any necessary authentication headers here
+                        'Authorization': `Bearer ${jwtToken}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const students = await response.json();
+
+                if (students.length === 0) {
+                    contentArea.innerHTML = `
+                        <div class="text-center text-gray-500 py-12">
+                            <p class="text-lg font-semibold">No students found in your class.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Clear the content area and render students
+                contentArea.innerHTML = `<div class="space-y-4"></div>`;
+                const studentsListContainer = contentArea.querySelector('div');
+
+                // Loop through the data and create an HTML element for each student
+                students.forEach(student => {
+                    const studentElement = createStudentItem(student);
+                    studentsListContainer.appendChild(studentElement);
+                });
+
+            } catch (error) {
+                console.error('Failed to fetch students:', error);
+                contentArea.innerHTML = `
+                    <div class="text-center text-red-500 py-12">
+                        <p class="font-bold">Error:</p>
+                        <p>${error.message}</p>
+                        <p>Could not load class list. Please try again later.</p>
+                    </div>
+                `;
+            }
         }
 
         // Call the render function when the page loads
-        document.addEventListener('DOMContentLoaded', renderStudents);
+        document.addEventListener('DOMContentLoaded', fetchStudentsAndRender);
     </script>
 
 </body>
 </html>
+

@@ -118,14 +118,14 @@
         <!-- Profile Form -->
         <form id="profile-form" class="space-y-6">
 
-            <!-- Profile Picture Section (NEW) -->
+            <!-- Profile Picture Section (UPDATED) -->
             <div class="flex flex-col items-center space-y-4 mb-8">
                 <!-- Image container with default avatar fallback -->
                 <img id="profile-picture-preview" 
-                     src="https://placehold.co/150x150/e5e7eb/4b5563?text=👤" 
-                     alt="Profile Picture" 
-                     class="w-36 h-36 rounded-full object-cover border-4 border-white shadow-lg cursor-pointer transition-transform duration-300 transform hover:scale-105"
-                     onclick="document.getElementById('profile-picture-input').click()">
+                        src="https://placehold.co/150x150/e5e7eb/4b5563?text=👤" 
+                        alt="Profile Picture" 
+                        class="w-36 h-36 rounded-full object-cover border-4 border-white shadow-lg cursor-pointer transition-transform duration-300 transform hover:scale-105"
+                        onclick="document.getElementById('profile-picture-input').click()">
                 
                 <!-- Hidden file input -->
                 <input type="file" id="profile-picture-input" class="hidden" accept="image/*" aria-label="Upload Profile Picture">
@@ -302,7 +302,13 @@
             teacherSchool: '', teacherGrade: '', adminSchool: ''
         };
         let isSaving = false;
+        let isUploadingPhoto = false; // NEW: Separate state for photo upload
         let errors = {};
+
+        // --- IMPORTANT: CONFIGURATION ---
+        const API_BASE = 'http://localhost:4000/api'; // Replace with your actual backend URL
+        const JWT_TOKEN = '5d4272c6c967410b420770265749cd06e6d2dca3c00dcaa4ff1c6c9135f8f435'; // Replace with your user's JWT token
+        // ---------------------------------
 
         // --- Mock Data for Demonstration ---
         // Added a profilePictureUrl to the mock data for demonstration
@@ -413,11 +419,12 @@
                     break;
             }
 
-            // Update disabled/enabled states based on isSaving
+            // Update disabled/enabled states based on isSaving and isUploadingPhoto
             const allInputs = form.querySelectorAll('input, select, button');
             allInputs.forEach(input => {
                 if (input.id !== 'email' && input.id !== 'occupation') {
-                    input.disabled = isSaving;
+                    // Disable all inputs while either operation is in progress
+                    input.disabled = isSaving || isUploadingPhoto;
                 }
             });
 
@@ -515,19 +522,60 @@
         };
 
         /**
-         * Handles file input change event to display a local preview.
+         * Handles the photo upload process.
+         * This function is triggered when a user selects a file.
          * @param {Event} event - The file input change event.
          */
-        const handleFileChange = (event) => {
+        const handlePhotoUpload = async (event) => {
             const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    // Update the userData state with a temporary URL
-                    userData.profilePictureUrl = e.target.result;
-                    render();
-                };
-                reader.readAsDataURL(file);
+            if (!file) {
+                showMessage('error', 'No file selected.');
+                return;
+            }
+
+            // Display a local preview immediately
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                userData.profilePictureUrl = e.target.result;
+                render();
+            };
+            reader.readAsDataURL(file);
+
+            // Set the uploading state and disable inputs
+            isUploadingPhoto = true;
+            render();
+            showMessage('success', 'Uploading photo...');
+
+            try {
+                const formData = new FormData();
+                formData.append('profilePhoto', file); // 'profilePhoto' matches the key in multer.single()
+
+                const response = await fetch(`${API_BASE}/profile/upload-photo`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${JWT_TOKEN}` // Send JWT for user authentication
+                    },
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Photo upload failed.');
+                }
+
+                const result = await response.json();
+                
+                // Update the state with the permanent URL from the server
+                userData.profilePictureUrl = result.photoUrl;
+                showMessage('success', 'Photo uploaded successfully!');
+                
+            } catch (error) {
+                console.error('Upload Error:', error);
+                showMessage('error', `Upload Failed: ${error.message}`);
+            } finally {
+                // Reset the uploading state
+                isUploadingPhoto = false;
+                render();
             }
         };
 
@@ -571,8 +619,6 @@
 
             try {
                 // Mock API call to save profile
-                // In a real app, you'd handle the file upload separately first,
-                // then update the profile with the returned image URL.
                 const res = await fetchAPI('/api/user/profile', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
@@ -619,20 +665,21 @@
             // Add event listeners
             form.addEventListener('submit', handleSaveProfile);
             form.addEventListener('input', handleInputChange);
-            profilePictureInput.addEventListener('change', handleFileChange);
+            profilePictureInput.addEventListener('change', handlePhotoUpload); // Use the new upload handler
             changePictureBtn.addEventListener('click', () => {
                 profilePictureInput.click();
             });
             form.addEventListener('blur', (e) => {
-                const name = e.target.name;
-                if (name) {
-                    validateField(name, userData[name] || '');
+                // Blur event listener logic remains the same
+                const { name, value } = e.target;
+                if (name && userData[name] !== undefined) {
+                    validateField(name, value);
                 }
-            }, true); // Use event capturing to validate on blur
+            }, true);
         };
 
-        // Run the initialization when the DOM is ready
-        document.addEventListener('DOMContentLoaded', init);
+        window.onload = init;
     </script>
 </body>
 </html>
+

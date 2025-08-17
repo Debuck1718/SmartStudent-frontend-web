@@ -198,13 +198,13 @@
         
         <!-- Tab Navigation -->
         <nav class="flex flex-wrap sm:flex-nowrap justify-around items-center bg-gray-200 rounded-xl p-3 shadow-md">
-            <a href="my-class-students.html" class="flex-1 text-center py-2 px-3 m-1 bg-blue-500 text-white font-bold rounded-lg shadow-sm hover:bg-blue-600 transition-colors">
+            <a href="/public/my-class-students.html" class="flex-1 text-center py-2 px-3 m-1 bg-blue-500 text-white font-bold rounded-lg shadow-sm hover:bg-blue-600 transition-colors">
                 👨‍🎓 My Class
             </a>
-            <a href="completed-assigned-tasks.html" class="flex-1 text-center py-2 px-3 m-1 bg-blue-500 text-white font-bold rounded-lg shadow-sm hover:bg-blue-600 transition-colors">
+            <a href="/public/completed-assignment.html" class="flex-1 text-center py-2 px-3 m-1 bg-blue-500 text-white font-bold rounded-lg shadow-sm hover:bg-blue-600 transition-colors">
                 ✅ Completed Tasks
             </a>
-            <a href="other-student.html" class="flex-1 text-center py-2 px-3 m-1 bg-blue-500 text-white font-bold rounded-lg shadow-sm hover:bg-blue-600 transition-colors">
+            <a href="/public/other-students.html" class="flex-1 text-center py-2 px-3 m-1 bg-blue-500 text-white font-bold rounded-lg shadow-sm hover:bg-blue-600 transition-colors">
                 🏫 Other School
             </a>
         </nav>
@@ -228,7 +228,13 @@
                 </select>
             </div>
 
-            <label for="assignmentText" class="block text-gray-700 font-bold mb-2">Assignment Details (min 500 words or attach file):</label>
+            <label for="assignmentTitle" class="block text-gray-700 font-bold mb-2">Assignment Title:</label>
+            <input type="text" id="assignmentTitle" class="w-full p-3 mb-4 border border-gray-300 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., History Essay on World War II" maxlength="100">
+
+            <label for="assignmentDueDate" class="block text-gray-700 font-bold mb-2">Due Date:</label>
+            <input type="datetime-local" id="assignmentDueDate" class="w-full p-3 mb-4 border border-gray-300 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+            <label for="assignmentText" class="block text-gray-700 font-bold mb-2">Assignment Details (max 1000 words or attach file):</label>
             <textarea id="assignmentText" class="w-full min-h-[150px] p-4 mb-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y" placeholder="Type your assignment here..." maxlength="5000"></textarea>
             <p id="wordCountText" class="text-sm text-gray-500 text-right mb-4">Word count: 0</p>
             
@@ -247,6 +253,28 @@
             </button>
         </section>
         
+        <!-- Add Student Points Section -->
+        <section class="bg-white rounded-xl p-6 shadow-lg">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4 border-b pb-2">➕ Add Student Points</h2>
+
+            <label for="points-student-select" class="block text-gray-700 font-bold mb-2">Select Student:</label>
+            <div class="border border-gray-300 rounded-lg overflow-hidden mb-4">
+                <select id="points-student-select" class="w-full p-3 bg-white text-gray-800 focus:outline-none">
+                    <!-- Options will be populated dynamically -->
+                </select>
+            </div>
+
+            <label for="pointsInput" class="block text-gray-700 font-bold mb-2">Points to Add:</label>
+            <input type="number" id="pointsInput" class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="e.g., 10" min="1">
+            
+            <label for="reasonText" class="block text-gray-700 font-bold mb-2">Reason (Optional):</label>
+            <textarea id="reasonText" class="w-full min-h-[80px] p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-y" placeholder="e.g., Great participation in class discussion."></textarea>
+            
+            <button id="addPointsButton" class="w-full py-4 bg-green-500 text-white font-bold rounded-lg shadow-md hover:bg-green-600 transition-colors transform hover:scale-105">
+                Add Points
+            </button>
+        </section>
+
         <!-- Overdue Tasks Section -->
         <section class="bg-white rounded-xl p-6 shadow-lg">
             <h2 class="text-2xl font-semibold text-gray-700 mb-4 border-b pb-2">📌 Overdue Tasks</h2>
@@ -284,7 +312,7 @@
         
         <!-- Footer -->
         <footer class="text-center text-sm text-gray-500 py-6 mt-4">
-            © <span id="currentYear"></span> SmartStudent
+            © <span id="currentYear"></span> SmartStudentAct
         </footer>
     </div>
 
@@ -304,6 +332,8 @@
         const assignedTasksListEl = document.getElementById('assignedTasksList');
         const feedbackListEl = document.getElementById('feedbackList');
         const studentSelectEl = document.getElementById('student-select');
+        const assignmentTitleEl = document.getElementById('assignmentTitle');
+        const assignmentDueDateEl = document.getElementById('assignmentDueDate');
         const assignmentTextEl = document.getElementById('assignmentText');
         const wordCountTextEl = document.getElementById('wordCountText');
         const assignmentFileEl = document.getElementById('assignmentFile');
@@ -331,7 +361,13 @@
         const okPromptBtn = document.getElementById('okPromptBtn');
         const cancelPromptBtn = document.getElementById('cancelPromptBtn');
 
-        const API_BASE = 'https://smartstudent-backend.onrender.com';
+        // New DOM elements for adding points
+        const pointsStudentSelectEl = document.getElementById('points-student-select');
+        const pointsInputEl = document.getElementById('pointsInput');
+        const reasonTextEl = document.getElementById('reasonText');
+        const addPointsButtonEl = document.getElementById('addPointsButton');
+
+        const API_BASE = 'http://172.20.10.10:4000/api';
 
         // --- Helper Functions ---
         /**
@@ -470,8 +506,10 @@
                 </div>
             `, 'No students found in your class.');
 
-            // Populate student select for assignments
-            studentSelectEl.innerHTML = students.map(s => `<option value="${sanitizeInput(s.email)}">${sanitizeInput(s.firstname)} ${sanitizeInput(s.lastname)} (${sanitizeInput(s.email)})</option>`).join('');
+            // Populate student select for assignments and points
+            const optionsHtml = students.map(s => `<option value="${sanitizeInput(s.email)}">${sanitizeInput(s.firstname)} ${sanitizeInput(s.lastname)} (${sanitizeInput(s.email)})</option>`).join('');
+            studentSelectEl.innerHTML = optionsHtml;
+            pointsStudentSelectEl.innerHTML = optionsHtml;
         }
 
         /**
@@ -538,7 +576,7 @@
                 return;
             }
             try {
-                const res = await fetchAPI('/api/teacher/message', {
+                const res = await fetchAPI('/teacher/message', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ to: email, text: text }),
@@ -583,7 +621,7 @@
             calendarMsgEl.textContent = '';
             
             try {
-                const res = await fetchAPI('/api/calendar', {
+                const res = await fetchAPI('/calendar', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     // Backend is expected to handle sanitization and validation
@@ -613,47 +651,52 @@
          */
         async function sendNewAssignment() {
             const studentEmail = studentSelectEl.value;
+            const assignmentTitle = assignmentTitleEl.value;
             const assignmentText = assignmentTextEl.value;
+            const assignmentDueDate = assignmentDueDateEl.value;
             const wordCount = getWordCount(assignmentText);
 
             // Client-side validation
-            if (!studentEmail) {
-                toast('Please select a student.');
-                return;
-            }
-            if (wordCount < 500 && !selectedAssignmentFile) {
-                toast('Assignment must be at least 500 words or include an attachment.');
+            if (!studentEmail || !assignmentTitle || !assignmentDueDate) {
+                toast('Please select a student and provide a title and due date.');
                 return;
             }
 
+            if (wordCount < 50 && !selectedAssignmentFile) {
+                toast('Assignment must have at least 50 words or an attached file.');
+                return;
+            }
+
+            loadingOverlay.style.display = 'flex';
             sendAssignmentButtonEl.disabled = true;
-            const originalButtonText = sendAssignmentButtonEl.textContent;
-            sendAssignmentButtonEl.innerHTML = `<div class="spinner mx-auto"></div>`;
+
+            const formData = new FormData();
+            formData.append('to_email', studentEmail);
+            formData.append('title', assignmentTitle);
+            formData.append('content', assignmentText);
+            formData.append('due_datetime', assignmentDueDate);
+
+            if (selectedAssignmentFile) {
+                formData.append('file', selectedAssignmentFile);
+            }
 
             try {
-                const formData = new FormData();
-                // Sanitize text input before sending
-                formData.append('studentEmail', sanitizeInput(studentEmail));
-                formData.append('assignmentText', sanitizeInput(assignmentText));
-
-                if (selectedAssignmentFile) {
-                    formData.append('assignmentFile', selectedAssignmentFile, selectedAssignmentFile.name);
-                }
-
-                const res = await fetchAPI('/api/teacher/assign', {
+                const res = await fetchAPI('/teacher/assign-task', {
                     method: 'POST',
                     body: formData,
                 });
-
+                
                 if (res.ok) {
                     toast('Assignment sent successfully!');
+                    // Clear the form after success
+                    studentSelectEl.value = students[0]?.email || '';
+                    assignmentTitleEl.value = '';
                     assignmentTextEl.value = '';
+                    assignmentDueDateEl.value = '';
                     selectedAssignmentFile = null;
                     fileNameEl.textContent = 'No file selected.';
                     clearFileButtonEl.classList.add('hidden');
                     updateSendButtonState();
-                    // Assumes a function to load assigned tasks exists, but for this file it's a placeholder
-                    // loadAssignedTasks(); // Refresh list - uncomment if implemented
                 } else {
                     const errorData = await res.json().catch(() => ({ message: 'Failed to send assignment.' }));
                     toast(`Failed to send assignment: ${errorData.message}`);
@@ -662,166 +705,181 @@
                 console.error('Error sending assignment:', error);
                 toast('Failed to send assignment due to a network error.');
             } finally {
+                loadingOverlay.style.display = 'none';
                 sendAssignmentButtonEl.disabled = false;
-                sendAssignmentButtonEl.innerHTML = originalButtonText;
             }
         }
 
         /**
-         * Handles logout functionality.
-         * Replaced `window.confirm` with the custom modal for a better experience.
+         * Adds points to a student.
          */
-        async function logout() {
-            const confirmed = await new Promise((resolve) => {
-                showPromptModal('Logout Confirmation', 'Are you sure you want to log out?');
-                document.getElementById('okPromptBtn').onclick = () => { resolve(true); promptModal.style.display = 'none'; };
-                document.getElementById('cancelPromptBtn').onclick = () => { resolve(false); promptModal.style.display = 'none'; };
-            });
+        async function addStudentPoints() {
+            const studentEmail = pointsStudentSelectEl.value;
+            const points = parseInt(pointsInputEl.value, 10);
+            const reason = reasonTextEl.value;
 
-            if (confirmed) {
-                try {
-                    await fetchAPI('/api/logout', { method: 'POST' });
-                    window.location.href = '/login.html'; // Assuming a login page
-                } catch (error) {
-                    console.error('Logout failed:', error);
-                    toast('Failed to log out. Please try again.');
+            if (!studentEmail || isNaN(points) || points <= 0) {
+                toast('Please select a student and enter a valid number of points.');
+                return;
+            }
+
+            loadingOverlay.style.display = 'flex';
+            addPointsButtonEl.disabled = true;
+
+            try {
+                const res = await fetchAPI('/teacher/add-points', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: studentEmail,
+                        points: points,
+                        reason: reason,
+                    }),
+                });
+                if (res.ok) {
+                    toast('Points added successfully!');
+                    pointsInputEl.value = '';
+                    reasonTextEl.value = '';
+                } else {
+                    const errorData = await res.json().catch(() => ({ message: 'Failed to add points.' }));
+                    toast(`Failed to add points: ${errorData.message}`);
                 }
+            } catch (error) {
+                console.error('Error adding points:', error);
+                toast('Failed to add points due to a network error.');
+            } finally {
+                loadingOverlay.style.display = 'none';
+                addPointsButtonEl.disabled = false;
             }
         }
 
         /**
-         * Updates the state of the send button based on input.
+         * Dynamically enables/disables the send assignment button.
          */
         function updateSendButtonState() {
-            const wordCount = getWordCount(assignmentTextEl.value);
-            const isSendable = (wordCount >= 500) || (selectedAssignmentFile !== null);
-            sendAssignmentButtonEl.disabled = !isSendable;
-            wordCountTextEl.textContent = `Word count: ${wordCount}`;
+            const studentSelected = studentSelectEl.value;
+            const titlePresent = assignmentTitleEl.value.trim() !== '';
+            const textOrFilePresent = getWordCount(assignmentTextEl.value) >= 500 || selectedAssignmentFile !== null;
+            const dueDatePresent = assignmentDueDateEl.value.trim() !== '';
+            
+            if (studentSelected && titlePresent && textOrFilePresent && dueDatePresent) {
+                sendAssignmentButtonEl.disabled = false;
+                sendAssignmentButtonEl.classList.remove('bg-gray-400', 'hover:bg-gray-400');
+                sendAssignmentButtonEl.classList.add('bg-blue-500', 'hover:bg-blue-600');
+            } else {
+                sendAssignmentButtonEl.disabled = true;
+                sendAssignmentButtonEl.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                sendAssignmentButtonEl.classList.add('bg-gray-400', 'hover:bg-gray-400');
+            }
         }
+
+
+        // --- Event Listeners ---
+        window.onload = function() {
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+            fetchDashboardData();
+
+            // Set up dynamic button state
+            assignmentTitleEl.addEventListener('input', updateSendButtonState);
+            assignmentDueDateEl.addEventListener('input', updateSendButtonState);
+            assignmentTextEl.addEventListener('input', updateSendButtonState);
+            studentSelectEl.addEventListener('change', updateSendButtonState);
+            assignmentFileEl.addEventListener('change', updateSendButtonState);
+        };
         
-        /**
-         * Toggles the visibility of the profile dropdown menu.
-         */
-        function toggleDropdown() {
+        assignmentTextEl.addEventListener('input', (e) => {
+            const wordCount = getWordCount(e.target.value);
+            wordCountTextEl.textContent = `Word count: ${wordCount}`;
+            updateSendButtonState();
+        });
+
+        assignmentFileEl.addEventListener('change', (e) => {
+            selectedAssignmentFile = e.target.files[0] || null;
+            if (selectedAssignmentFile) {
+                fileNameEl.textContent = selectedAssignmentFile.name;
+                clearFileButtonEl.classList.remove('hidden');
+            } else {
+                fileNameEl.textContent = 'No file selected.';
+                clearFileButtonEl.classList.add('hidden');
+            }
+            updateSendButtonState();
+        });
+
+        clearFileButtonEl.addEventListener('click', (e) => {
+            e.preventDefault();
+            selectedAssignmentFile = null;
+            assignmentFileEl.value = ''; // Clear file input value
+            fileNameEl.textContent = 'No file selected.';
+            clearFileButtonEl.classList.add('hidden');
+            updateSendButtonState();
+        });
+
+        sendAssignmentButtonEl.addEventListener('click', sendNewAssignment);
+        saveCalendarButtonEl.addEventListener('click', saveCalendar);
+        addPointsButtonEl.addEventListener('click', addStudentPoints);
+
+        // Profile dropdown functionality
+        profileMenuButton.addEventListener('click', () => {
             isDropdownVisible = !isDropdownVisible;
             if (isDropdownVisible) {
                 profileDropdownMenu.classList.remove('hidden');
-                setTimeout(() => {
-                    profileDropdownMenu.classList.add('visible');
-                    profileDropdownMenu.classList.remove('opacity-0');
-                }, 10); // Small delay to allow CSS transition
+                setTimeout(() => profileDropdownMenu.classList.add('visible'), 10);
             } else {
                 profileDropdownMenu.classList.remove('visible');
-                profileDropdownMenu.classList.add('opacity-0');
-                // Wait for transition to finish before hiding
-                setTimeout(() => {
-                    profileDropdownMenu.classList.add('hidden');
-                }, 200);
+                setTimeout(() => profileDropdownMenu.classList.add('hidden'), 200);
             }
-        }
+        });
 
-        /**
-         * Initializes all event listeners.
-         */
-        function setupEventListeners() {
-            assignmentTextEl.addEventListener('input', updateSendButtonState);
-            assignmentFileEl.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    selectedAssignmentFile = file;
-                    fileNameEl.textContent = `✅ ${file.name}`;
-                    clearFileButtonEl.classList.remove('hidden');
-                } else {
-                    selectedAssignmentFile = null;
-                    fileNameEl.textContent = 'No file selected.';
-                    clearFileButtonEl.classList.add('hidden');
-                }
-                updateSendButtonState();
-            });
-            clearFileButtonEl.addEventListener('click', () => {
-                assignmentFileEl.value = '';
-                selectedAssignmentFile = null;
-                fileNameEl.textContent = 'No file selected.';
-                clearFileButtonEl.classList.add('hidden');
-                updateSendButtonState();
-            });
-            sendAssignmentButtonEl.addEventListener('click', sendNewAssignment);
-            saveCalendarButtonEl.addEventListener('click', saveCalendar);
-            
-            // Event listeners for the new profile dropdown
-            profileMenuButton.addEventListener('click', (event) => {
-                event.stopPropagation(); // Prevents the document click from closing it immediately
-                toggleDropdown();
-            });
-            document.addEventListener('click', (event) => {
-                const isClickInside = profileDropdownMenu.contains(event.target) || profileMenuButton.contains(event.target);
-                if (isDropdownVisible && !isClickInside) {
-                    toggleDropdown();
-                }
-            });
-            
-            logoutButtonEl.addEventListener('click', logout);
-        }
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (event) => {
+            if (isDropdownVisible && !profileMenuButton.contains(event.target) && !profileDropdownMenu.contains(event.target)) {
+                profileDropdownMenu.classList.remove('visible');
+                setTimeout(() => profileDropdownMenu.classList.add('hidden'), 200);
+                isDropdownVisible = false;
+            }
+        });
 
+        logoutButtonEl.addEventListener('click', () => {
+            // Placeholder for logout functionality
+            toast('Signing out...');
+            // In a real app, this would redirect to a logout endpoint
+            // window.location.href = '/logout';
+        });
+
+        // --- Data Fetching Functions ---
         /**
-         * Initial data fetching and rendering.
+         * Fetches all dashboard data from the API.
          */
-        async function init() {
+        async function fetchDashboardData() {
+            loadingOverlay.style.display = 'flex';
             try {
-                // Check session and occupation
-                const sessionRes = await fetchAPI('/api/session');
-                const sessionData = await sessionRes.json();
-                
-                if (!sessionData.loggedIn || sessionData.user.occupation !== 'teacher') {
-                    showMessageModal('Authentication Required', 'Please log in as a teacher to access this page.');
-                    setTimeout(() => window.location.href = '/login.html', 3000);
-                    return;
-                }
-                
-                // Fetch all data concurrently
-                const [studentsRes, assignedTasksRes, overdueTasksRes, feedbackRes] = await Promise.all([
-                    fetchAPI('/api/teacher/students/class'),
-                    fetchAPI('/api/teacher/assigned'),
-                    fetchAPI('/api/teacher/overdue'),
-                    fetchAPI('/api/teacher/feedback'),
+                const [studentsRes, overdueRes, assignedRes, feedbackRes] = await Promise.all([
+                    fetchAPI('/teacher/students'),
+                    fetchAPI('/teacher/overdue'),
+                    fetchAPI('/teacher/assigned'),
+                    fetchAPI('/teacher/feedback')
                 ]);
 
                 students = await studentsRes.json();
-                assignedTasks = await assignedTasksRes.json();
-                overdueTasks = await overdueTasksRes.json();
+                overdueTasks = await overdueRes.json();
+                assignedTasks = await assignedRes.json();
                 feedbackList = await feedbackRes.json();
 
-                // Render all sections
                 renderStudents();
-                renderAssignedTasks();
                 renderOverdueTasks();
+                renderAssignedTasks();
                 renderFeedback();
-                updateSendButtonState();
-
-                // Polling for new feedback every 30 seconds
-                setInterval(async () => {
-                    const res = await fetchAPI('/api/teacher/feedback');
-                    feedbackList = await res.json();
-                    renderFeedback();
-                }, 30000);
 
             } catch (error) {
-                console.error('Initialization failed:', error);
+                console.error('Failed to fetch dashboard data:', error);
+                // The fetchAPI helper already shows a modal for network errors
             } finally {
                 loadingOverlay.style.display = 'none';
             }
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            setupEventListeners();
-            init();
-        });
-
-        // Expose functions to the global scope for event handlers in HTML
-        window.closeMessageModal = closeMessageModal;
-        window.sendMessage = sendMessage;
     </script>
 </body>
 </html>
+
 
 

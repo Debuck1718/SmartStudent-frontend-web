@@ -7,12 +7,43 @@
     <!-- Tailwind CSS for modern styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            max-width: 80%;
+            text-align: center;
         }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <!-- Custom Modal for Messages -->
+    <div id="alert-modal" class="modal">
+        <div class="modal-content shadow-lg">
+            <h3 id="modal-title" class="text-xl font-bold mb-4"></h3>
+            <p id="modal-message" class="mb-6"></p>
+            <button onclick="closeModal()" class="bg-blue-500 text-white font-semibold py-2 px-6 rounded-lg hover:bg-blue-600 transition-colors">OK</button>
+        </div>
+    </div>
 
     <!-- Main Payment Container -->
     <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-gray-200">
@@ -26,7 +57,6 @@
         
         <!-- Payment Details -->
         <div id="payment-details" class="mt-6 p-4 bg-blue-50 rounded-xl">
-            <!-- Amount and currency will be injected here -->
             <p class="text-sm text-blue-800 font-semibold">Subscription Fee</p>
             <p id="amount-text" class="text-2xl font-bold text-blue-900 mt-1">
                 Loading...
@@ -54,12 +84,34 @@
         const messageDiv = document.getElementById('message');
         const amountText = document.getElementById('amount-text');
 
-        // Paystack public key. Replace with your actual public key from your Paystack dashboard.
-        const PAYSTACK_PUBLIC_KEY = 'pk_test_a88b5840d4f24c3c33215f79579735d49f697956';
+        // --- IMPORTANT: CONFIGURATION ---
+        // You MUST replace this with your actual backend URL.
+        const BACKEND_BASE_URL = ' http://0.0.0.0:4000'; // Example: 'https://api.yourdomain.com'
+        
+        // You MUST get the JWT token and user email from your authentication process.
+        // This is a placeholder. In a real app, you would store this after a successful login.
+        const JWT_TOKEN = '5d4272c6c967410b420770265749cd06e6d2dca3c00dcaa4ff1c6c9135f8f435'; 
+        const USER_EMAIL = 'user@example.com'; 
 
-        // Base subscription fee and details to be fetched from the backend
+        // Paystack public key. Replace with your actual public key from your Paystack dashboard.
+        const PAYSTACK_PUBLIC_KEY = 'pk_live_7d871b198024f60a328d95812595be2443695fcb';
+        // ---------------------------------
+
         let finalAmount = 0;
         let finalCurrency = '';
+
+        /**
+         * Custom modal functions to replace `alert()`.
+         */
+        function showAlert(title, message) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('alert-modal').style.display = 'none';
+        }
 
         /**
          * Disables the button and shows a loading message.
@@ -78,73 +130,123 @@
         }
 
         /**
-         * Fetches payment details from the backend.
+         * Fetches payment details from the backend's /pricing route.
          */
         async function fetchPaymentDetails() {
             showLoading('Getting price...');
             try {
-                const response = await fetch('http://127.0.0.1:5000/api/payment-details'); // Change URL if your backend is hosted elsewhere
+                const response = await fetch(`${BACKEND_BASE_URL}/pricing`, {
+                    headers: {
+                        'Authorization': `Bearer ${JWT_TOKEN}`
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to fetch pricing.');
+                }
+
                 const data = await response.json();
 
-                if (data.success) {
-                    finalAmount = data.amount;
-                    finalCurrency = data.currency;
-                    
-                    // Update the UI with the fetched price and currency
-                    amountText.textContent = `${finalCurrency} ${finalAmount.toFixed(2)}`;
-                    payButton.disabled = false; // Enable the button now that we have the amount
-                    hideLoading();
-                } else {
-                    messageDiv.innerHTML = `<p class="text-red-600">Failed to get payment details. Please try again.</p>`;
-                    hideLoading();
-                }
+                // The backend returns a price object, not a success key.
+                finalAmount = data.localPrice;
+                finalCurrency = data.currency;
+                
+                // Update the UI with the fetched price and currency
+                amountText.textContent = `${finalCurrency} ${finalAmount.toFixed(2)}`;
+                hideLoading();
             } catch (error) {
                 console.error('Error fetching payment details:', error);
-                messageDiv.innerHTML = `<p class="text-red-600">Network error. Please try again later.</p>`;
+                messageDiv.innerHTML = `<p class="text-red-600">Error: ${error.message}</p>`;
                 hideLoading();
+                showAlert('Error', `Failed to get payment details. Please check your network and try again. ${error.message}`);
             }
         }
         
         /**
-         * Initiates the Paystack payment process.
+         * Initiates the Paystack payment by first calling the backend's /payment/initiate route.
          */
-        function payWithPaystack() {
-            // Mock user details and a random unique reference for the transaction
-            const userEmail = 'testuser@example.com';
-            const transactionRef = 'TX-' + Math.random().toString(36).substring(2, 15) + Date.now();
+        async function payWithPaystack() {
+            showLoading('Initiating payment...');
             
-            // Amount must be in kobo/pesewas. Multiply the amount by 100.
-            const amountInPesewas = finalAmount * 100;
+            try {
+                // Step 1: Call the backend to get a valid payment authorization URL/data
+                const initiateResponse = await fetch(`${BACKEND_BASE_URL}/payment/initiate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${JWT_TOKEN}`
+                    },
+                    body: JSON.stringify({ gateway: 'paystack' })
+                });
 
-            showLoading('Processing...');
-            
-            let handler = PaystackPop.setup({
-                key: PAYSTACK_PUBLIC_KEY,
-                email: userEmail,
-                amount: amountInPesewas,
-                currency: finalCurrency,
-                ref: transactionRef,
+                if (!initiateResponse.ok) {
+                    const errorData = await initiateResponse.json();
+                    throw new Error(errorData.error || 'Failed to initiate payment.');
+                }
                 
-                // This callback function runs when the payment is successful.
-                callback: function(response) {
-                    messageDiv.innerHTML = `<p class="text-green-600 font-semibold">Payment successful! Your account has been upgraded.</p>`;
-                    messageDiv.classList.remove('text-red-600');
-                    messageDiv.classList.add('text-green-600');
-                    hideLoading();
+                const initiateData = await initiateResponse.json();
+                const paymentData = initiateData.data;
 
-                    // Send the transaction reference to the backend for verification
-                    console.log('Payment successful. Transaction reference:', response.reference);
-                },
+                // Amount must be in kobo/pesewas. Multiply the amount by 100.
+                const amountInPesewas = finalAmount * 100;
                 
-                // This callback runs if the user closes the payment modal.
-                onClose: function() {
-                    messageDiv.innerHTML = `<p class="text-red-600">Payment canceled. Please try again to upgrade.</p>`;
-                    messageDiv.classList.remove('text-green-600');
-                    messageDiv.classList.add('text-red-600');
-                    hideLoading();
-                },
-            });
-            handler.openIframe();
+                // Step 2: Use the data from the backend to open the Paystack popup
+                let handler = PaystackPop.setup({
+                    key: PAYSTACK_PUBLIC_KEY,
+                    email: USER_EMAIL, // Use the user's actual email
+                    amount: amountInPesewas,
+                    currency: finalCurrency,
+                    ref: paymentData.reference, // Use the reference from the backend
+                    
+                    callback: async function(response) {
+                        messageDiv.innerHTML = `<p class="text-blue-600 font-semibold">Verifying payment...</p>`;
+                        
+                        // Step 3: Call the backend's /payment/success route to verify the transaction
+                        try {
+                            const successResponse = await fetch(`${BACKEND_BASE_URL}/payment/success`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${JWT_TOKEN}`
+                                },
+                                body: JSON.stringify({
+                                    gateway: 'paystack',
+                                    transaction_reference: response.reference
+                                })
+                            });
+
+                            if (!successResponse.ok) {
+                                const errorData = await successResponse.json();
+                                throw new Error(errorData.error || 'Payment verification failed.');
+                            }
+
+                            messageDiv.innerHTML = `<p class="text-green-600 font-semibold">✅ Payment successful! Your account has been upgraded.</p>`;
+                            showAlert('Success', 'Your subscription is now active!');
+                            // Optional: Redirect the user to their dashboard or a success page
+                            // window.location.href = '/dashboard';
+
+                        } catch (error) {
+                            messageDiv.innerHTML = `<p class="text-red-600">Error: ${error.message}</p>`;
+                            showAlert('Verification Failed', `Payment was successful but verification failed: ${error.message}`);
+                        }
+                        
+                        hideLoading();
+                    },
+                    
+                    onClose: function() {
+                        messageDiv.innerHTML = `<p class="text-red-600">Payment canceled. Please try again to upgrade.</p>`;
+                        hideLoading();
+                    },
+                });
+                handler.openIframe();
+
+            } catch (error) {
+                console.error('Error in payment process:', error);
+                messageDiv.innerHTML = `<p class="text-red-600">Error: ${error.message}</p>`;
+                showAlert('Payment Error', `Failed to start the payment process. Please try again. ${error.message}`);
+                hideLoading();
+            }
         }
 
         // Add a click event listener to the payment button
