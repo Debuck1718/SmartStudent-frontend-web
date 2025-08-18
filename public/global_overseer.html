@@ -56,7 +56,7 @@
     
     <script>
         // Mocking React Native/Expo dependencies for the browser environment
-        const API_BASE = 'http://localhost:3000'; // Mock API base URL
+        const API_BASE = 'http://172.20.10.10:4000/api'; // Make sure this is your correct backend URL
 
         // --- Mock Router & Navigation ---
         const router = {
@@ -147,42 +147,17 @@
             ];
         }
 
-        // --- Helper for API calls with basic error handling ---
-        const fetchAPI = async (url, options = {}) => {
-            try {
-                // Mock API responses
-                if (url === '/api/global-overseer/dashboard-overview') {
-                    return {
-                        ok: true,
-                        json: () => Promise.resolve({
-                            totalRegions: 12,
-                            totalSchools: 150,
-                            totalOverseers: 25,
-                            totalAdmins: 150,
-                            totalUsers: 25000,
-                        })
-                    };
-                }
-                // Fallback for other URLs
-                return {
-                    ok: false,
-                    status: 404,
-                    statusText: 'Not Found',
-                    json: () => Promise.resolve({ message: 'Mock API endpoint not found.' })
-                };
-            } catch (error) {
-                console.error(`Fetch error for ${url}:`, error);
-                showCustomAlert('Network Error', `Could not connect to the server or process request for ${url.split('?')[0]}.`);
-                throw error; // Re-throw to be caught by specific functions
-            }
-        };
-
         // --- Core Application Logic ---
         const fetchDashboardData = async () => {
             state.isDataLoading = true;
             render();
             try {
-                const res = await fetchAPI('/api/global-overseer/dashboard-overview');
+                // REAL API CALL
+                const res = await fetch(`${API_BASE}/api/global-overseer/dashboard-overview`);
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.message || 'Failed to fetch dashboard data');
+                }
                 const data = await res.json();
                 state.dashboardData = data;
             } catch (error) {

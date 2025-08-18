@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overseer Dashboard</title>
+    <!-- Tailwind CSS for modern, responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles to match the React Native component's look */
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #f5f7fa;
+        }
+
+        .spinner {
+            border-top-color: #007bff;
+            -webkit-animation: spinner 1s linear infinite;
+            animation: spinner 1s linear infinite;
+        }
+
+        @-webkit-keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    <!-- Ionicons for the icons, just like in the React Native version -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+</head>
+<body class="bg-gray-100">
+
+    <!-- The main container for the dashboard -->
+    <div class="max-w-4xl mx-auto p-6 lg:p-10">
+
+        <!-- Loading state container -->
+        <div id="loading-container" class="flex flex-col items-center justify-center min-h-screen">
+            <div class="spinner w-12 h-12 border-4 rounded-full border-gray-200"></div>
+            <p class="mt-4 text-lg font-medium text-gray-600">Loading Overseer Dashboard...</p>
+        </div>
+
+        <!-- Dashboard content container (hidden by default) -->
+        <div id="dashboard-content" class="hidden">
+            <!-- Header section -->
+            <div class="flex items-center justify-between pb-4 mb-6 border-b border-gray-200">
+                <div class="flex items-center space-x-2">
+                    <button id="profile-btn" class="p-2 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <ion-icon name="person-circle-outline" class="text-3xl text-gray-700"></ion-icon>
+                    </button>
+                    <button id="settings-btn" class="p-2 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <ion-icon name="settings-outline" class="text-3xl text-gray-700"></ion-icon>
+                    </button>
+                </div>
+                <h1 class="text-2xl font-bold text-center text-gray-800 flex-1">Overseer Dashboard</h1>
+                <button id="logout-btn" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-5 rounded-lg shadow-md transition-colors">
+                    Logout
+                </button>
+            </div>
+
+            <!-- Dashboard sections -->
+            <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-700 pb-2 border-b border-gray-100 mb-4">Your Regions</h2>
+                <div id="regions-container">
+                    <!-- Dynamic region cards will be inserted here by JavaScript -->
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-700 pb-2 border-b border-gray-100 mb-4">Management</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button id="manage-schools-btn" class="flex items-center justify-center space-x-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition-colors">
+                        <ion-icon name="map-outline" class="text-2xl"></ion-icon>
+                        <span>Manage Schools & Regions</span>
+                    </button>
+                    <button id="manage-admins-btn" class="flex items-center justify-center space-x-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition-colors">
+                        <ion-icon name="people-outline" class="text-2xl"></ion-icon>
+                        <span>Manage School Admins</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Add more sections/buttons here as needed -->
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // Mock user authentication and data
+            // In a real application, this data would come from a server-side session or a JWT.
+            const user = {
+                occupation: 'overseer', // or 'global_overseer'
+                id: '12345',
+                // Add other user properties here if needed
+            };
+
+            // Mock API data to simulate a backend response
+            const mockDashboardData = {
+                managedRegions: [
+                    { id: 'reg_1', name: 'West Africa', totalSchools: 50, totalAdmins: 15 },
+                    { id: 'reg_2', name: 'East Africa', totalSchools: 35, totalAdmins: 10 },
+                    { id: 'reg_3', name: 'South America', totalSchools: 75, totalAdmins: 22 }
+                ],
+            };
+
+            // HTML Element references
+            const loadingContainer = document.getElementById('loading-container');
+            const dashboardContent = document.getElementById('dashboard-content');
+            const regionsContainer = document.getElementById('regions-container');
+            const logoutBtn = document.getElementById('logout-btn');
+
+            /**
+             * Handles the fetching and display of dashboard data.
+             * This function simulates an API call with a delay.
+             */
+            const fetchDashboardData = async () => {
+                loadingContainer.classList.remove('hidden');
+                dashboardContent.classList.add('hidden');
+                
+                // Simulate a network delay
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // For this example, we'll use the mock data
+                const data = mockDashboardData;
+                
+                // Render the regions
+                renderRegions(data.managedRegions);
+
+                loadingContainer.classList.add('hidden');
+                dashboardContent.classList.remove('hidden');
+            };
+
+            /**
+             * Renders the region overview cards based on the fetched data.
+             * @param {Array} regions - An array of region objects.
+             */
+            const renderRegions = (regions) => {
+                regionsContainer.innerHTML = ''; // Clear existing content
+                if (regions.length === 0) {
+                    regionsContainer.innerHTML = `<p class="text-center text-gray-500 italic py-4">No regions assigned to you yet.</p>`;
+                } else {
+                    regions.forEach(region => {
+                        const card = document.createElement('div');
+                        card.className = 'bg-gray-100 p-4 rounded-lg mb-3 shadow-sm';
+                        card.innerHTML = `
+                            <p class="text-base text-gray-700 font-semibold mb-1">Region: ${region.name}</p>
+                            <p class="text-sm text-gray-600">Schools in Region: ${region.totalSchools || 0}</p>
+                            <p class="text-sm text-gray-600">Admins in Region: ${region.totalAdmins || 0}</p>
+                        `;
+                        regionsContainer.appendChild(card);
+                    });
+                }
+            };
+            
+            /**
+             * Handles the logout process with a confirmation dialog.
+             */
+            const handleLogout = () => {
+                if (confirm('Are you sure you want to log out?')) {
+                    // Simulate a successful sign out and redirect
+                    alert('You have been logged out.');
+                    window.location.href = '/login.html'; // Or whatever your login page URL is
+                }
+            };
+
+            // Add event listeners for buttons
+            logoutBtn.addEventListener('click', handleLogout);
+
+            // Fetch and display data when the page loads
+            fetchDashboardData();
+
+        });
+    </script>
+
+</body>
+</html>

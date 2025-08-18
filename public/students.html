@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -96,6 +96,30 @@
                 <p id="saved-goal-text" class="text-green-600 font-bold text-center mt-2 hidden"></p>
             </div>
         </section>
+        
+        <!-- AI INSIGHTS SECTION - NEW -->
+        <section class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl sm:text-2xl font-semibold text-gray-800">🤖 AI Insights</h2>
+                <div class="flex items-center">
+                    <label for="subscription-toggle" class="text-sm text-gray-500 mr-2">Subscribed?</label>
+                    <input type="checkbox" id="subscription-toggle" class="form-checkbox h-5 w-5 text-blue-600 rounded">
+                </div>
+            </div>
+            
+            <button id="generate-insights-btn" class="bg-[#1abc9c] text-white py-3 px-6 rounded-lg font-bold w-full mb-4 hover:bg-[#16a085] transition-colors">
+                Generate Insights
+            </button>
+            <div id="insights-container" class="space-y-4">
+                <p id="insights-placeholder" class="italic text-gray-500 text-center">Click "Generate Insights" to get personalized feedback on your academic and financial goals.</p>
+                <div id="insights-loading" class="text-center mt-4 hidden">
+                    <i class="fas fa-spinner fa-spin text-3xl text-gray-500"></i>
+                </div>
+                <div id="insights-content" class="bg-gray-50 p-4 rounded-lg shadow-sm hidden">
+                    <!-- AI insights will be displayed here -->
+                </div>
+            </div>
+        </section>
 
         <!-- REWARDS SECTION -->
         <section class="bg-white rounded-xl shadow-md p-6 mb-6">
@@ -139,6 +163,11 @@
             <a href="financial.html" class="flex flex-col items-center justify-center p-2 text-gray-500 hover:text-[#3498db] transition-colors">
                 <i class="fas fa-wallet text-2xl mb-1"></i>
                 <span class="text-xs font-medium">Financial</span>
+            </a>
+            <!-- AI Essay Checker Tab -->
+            <a href="AI-Essay-Checker.html" class="flex flex-col items-center justify-center p-2 text-gray-500 hover:text-[#3498db] transition-colors">
+                <i class="fas fa-robot text-2xl mb-1"></i>
+                <span class="text-xs font-medium">AI Checker</span>
             </a>
             <!-- Profile Tab -->
             <a href="profile.html" class="flex flex-col items-center justify-center p-2 text-gray-500 hover:text-[#3498db] transition-colors">
@@ -201,6 +230,10 @@
                 </a>
                 <a href="/financial.html" class="block py-4 text-lg text-gray-700 font-medium border-b border-gray-100 hover:bg-gray-50 transition-colors">
                     💰 Financial
+                </a>
+                <!-- New AI Essay Checker Link -->
+                <a href="/AI-Essay-Checker.html" class="block py-4 text-lg text-gray-700 font-medium border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    🤖 AI Essay Checker
                 </a>
                 <a href="/rewards.html" class="block py-4 text-lg text-gray-700 font-medium border-b border-gray-100 hover:bg-gray-50 transition-colors">
                     🏆 Rewards
@@ -281,8 +314,28 @@
         const alertConfirmBtn = document.getElementById('alert-confirm-btn');
         const alertCancelBtn = document.getElementById('alert-cancel-btn');
 
+        // AI Insights Elements (NEW)
+        const generateInsightsBtn = document.getElementById('generate-insights-btn');
+        const insightsLoading = document.getElementById('insights-loading');
+        const insightsContent = document.getElementById('insights-content');
+        const insightsPlaceholder = document.getElementById('insights-placeholder');
+        const subscriptionToggle = document.getElementById('subscription-toggle');
+
         // --- State Variables ---
         let alertConfirmAction = null;
+        let isSubscribed = false;
+        const trialUsageLimit = 3;
+        let currentUsage = 0;
+        
+        // --- API Configuration (Update with your live backend URL) ---
+        const BASE_URL = 'http://localhost:3000/api'; // Assuming your backend runs on this port
+        
+        // --- Mock User Data (Replace with real authentication in a full app) ---
+        const MOCK_USER = {
+            id: 'mock-user-123',
+            role: 'teacher', // Set to 'teacher' or 'student' to test different UIs
+        };
+
 
         // --- Helper Functions ---
 
@@ -330,30 +383,37 @@
         // --- API & Data Handling Functions ---
 
         /**
-         * Simulates a network request to an API.
-         * @param {string} endpoint The API endpoint URL.
+         * A generic function to make a fetch call to the backend API.
+         * @param {string} path The API endpoint path.
          * @param {object} options Fetch options.
          * @returns {Promise<object>} A promise that resolves with the parsed JSON response.
          */
-        const apiCall = async (endpoint, options = {}) => {
+        const apiCall = async (path, options = {}) => {
+            const url = `${BASE_URL}${path}`;
             const defaultHeaders = {
                 'Content-Type': 'application/json',
+                // In a real app, you would add an Authorization header here with a JWT token
+                'Authorization': `Bearer some-mock-jwt-token` 
             };
             
-            const response = await fetch(endpoint, {
-                ...options,
-                headers: {
-                    ...defaultHeaders,
-                    ...options.headers,
-                },
-            });
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    headers: {
+                        ...defaultHeaders,
+                        ...options.headers
+                    }
+                });
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'API call failed');
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || `API call to ${path} failed with status ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error(`API call to ${path} failed:`, error);
+                throw error;
             }
-
-            return await response.json();
         };
 
         /**
@@ -363,20 +423,28 @@
             assignmentsLoading.classList.remove('hidden');
             assignmentsList.innerHTML = '';
             try {
-                // Example: Fetching from a hypothetical local API endpoint
-                const assignments = await apiCall('http://172.20.10.10:4000/api/students/assignments');
+                let endpoint;
+                // Assuming we're using the student's dashboard view, so we fetch their assignments
+                // The backend endpoint is /api/student/assignments/:studentId
+                endpoint = `/student/assignments/${MOCK_USER.id}`;
+
+                const response = await apiCall(endpoint);
+                const assignments = response.assignments || []; // Check for the 'assignments' property
+
                 if (assignments.length === 0) {
                     assignmentsList.innerHTML = '<p class="italic text-gray-500 text-center">No assignments added yet.</p>';
                 } else {
                     assignments.forEach(assignment => {
                         const div = document.createElement('div');
                         div.className = 'bg-gray-50 p-4 rounded-lg flex justify-between items-center shadow-sm';
+                        // Use a more descriptive date format
+                        const dueDate = new Date(assignment.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
                         div.innerHTML = `
                             <div>
                                 <h4 class="font-semibold text-lg">${assignment.title}</h4>
-                                <p class="text-sm text-gray-600">${assignment.subject}</p>
+                                <p class="text-sm text-gray-600">Subject: ${assignment.class}</p>
                             </div>
-                            <span class="text-xs text-gray-400">Due: ${new Date(assignment.dueDate).toLocaleDateString()}</span>
+                            <span class="text-xs text-gray-400">Due: ${dueDate}</span>
                         `;
                         assignmentsList.appendChild(div);
                     });
@@ -396,8 +464,10 @@
             budgetLoading.classList.remove('hidden');
             budgetList.innerHTML = '';
             try {
-                // Example: Fetching from a hypothetical local API endpoint
-                const budgetEntries = await apiCall('http://172.20.10.10:4000/api/students/budget');
+                // The new endpoint is simply /api/budget
+                const response = await apiCall('/budget');
+                const budgetEntries = response.budgets || []; // The new endpoint returns a 'budgets' array
+
                 if (budgetEntries.length === 0) {
                     budgetList.innerHTML = '<p class="italic text-gray-500 text-center">No budget entries yet.</p>';
                 } else {
@@ -408,7 +478,7 @@
                         div.className = 'bg-gray-50 p-4 rounded-lg flex justify-between items-center shadow-sm';
                         div.innerHTML = `
                             <div>
-                                <h4 class="font-semibold text-lg">${entry.title}</h4>
+                                <h4 class="font-semibold text-lg">${entry.description}</h4>
                                 <p class="text-sm text-gray-600">${entry.type}</p>
                             </div>
                             <span class="font-bold ${color}">${isIncome ? '+' : '-'}${Math.abs(entry.amount).toFixed(2)} GHS</span>
@@ -429,16 +499,102 @@
          */
         const fetchGoal = async () => {
             try {
-                const goal = await apiCall('http://172.20.10.10:4000/api/students/goal');
-                if (goal && goal.text) {
-                    goalInput.value = goal.text;
-                    savedGoalText.textContent = `Saved: ${goal.text}`;
+                const response = await apiCall(`/advanced-goals/${MOCK_USER.id}`);
+                const goals = response.goals || [];
+                if (goals.length > 0) {
+                    const latestGoal = goals[0].description; // Get the latest goal description
+                    goalInput.value = latestGoal;
+                    savedGoalText.textContent = `Saved: ${latestGoal}`;
                     savedGoalText.classList.remove('hidden');
                 }
             } catch (error) {
                 console.error('Failed to fetch goal:', error);
                 savedGoalText.textContent = `Failed to load goal.`;
                 savedGoalText.classList.remove('hidden');
+            }
+        };
+
+        /**
+         * Generates AI insights based on goal and budget data.
+         */
+        const generateAiInsights = async () => {
+            insightsPlaceholder.classList.add('hidden');
+            insightsContent.classList.add('hidden');
+            insightsLoading.classList.remove('hidden');
+            generateInsightsBtn.disabled = true;
+            
+            // Usage check for trial users
+            if (!isSubscribed) {
+                if (currentUsage >= trialUsageLimit) {
+                    showAlert('Trial Expired', 'You have reached your trial limit of 3 insights. Please subscribe to continue.', () => {
+                        window.location.href = '#';
+                        closeAlert();
+                    });
+                    insightsLoading.classList.add('hidden');
+                    generateInsightsBtn.disabled = false;
+                    return;
+                }
+                currentUsage++;
+            }
+
+            try {
+                // Fetch the latest data from the live API endpoints
+                const assignmentsResponse = await apiCall(`/student/assignments/${MOCK_USER.id}`);
+                const assignmentsData = assignmentsResponse.assignments || [];
+                const budgetResponse = await apiCall('/budget');
+                const budgetData = budgetResponse.budgets || [];
+                const goalResponse = await apiCall(`/advanced-goals/${MOCK_USER.id}`);
+                const goalData = goalResponse.goals || [];
+
+
+                const assignmentsText = assignmentsData.map(a => `${a.title} (${a.class})`).join(', ') || 'No assignments.';
+                const budgetSummary = budgetData.reduce((acc, entry) => {
+                    if (entry.type === 'income') acc.income += entry.amount;
+                    if (entry.type === 'expense') acc.expenses += entry.amount;
+                    return acc;
+                }, { income: 0, expenses: 0 });
+                const currentGoal = goalData[0]?.description || 'No goal set.';
+
+                const prompt = `Act as a helpful student life assistant.
+                - Analyze the user's academic and financial data.
+                - Provide personalized, actionable advice.
+                - Keep the tone encouraging and positive.
+                - Keep it concise, no more than 150 words.
+
+                Here is the user's data:
+                - Weekly Goal: "${currentGoal}"
+                - Assignments: ${assignmentsText}
+                - Total Income: ${budgetSummary.income} GHS
+                - Total Expenses: ${budgetSummary.expenses} GHS
+
+                Based on this, provide a concise insight to help the student.`;
+
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: prompt }] }],
+                };
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                const result = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const responseData = await result.json();
+                const insightText = responseData.candidates[0].content.parts[0].text;
+                
+                insightsContent.textContent = insightText;
+                insightsContent.classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Error generating AI insights:', error);
+                showAlert('API Error', 'Failed to generate insights. Please try again later.');
+                insightsContent.textContent = 'Failed to load insights. Please try again.';
+                insightsContent.classList.remove('hidden');
+            } finally {
+                insightsLoading.classList.add('hidden');
+                generateInsightsBtn.disabled = false;
             }
         };
 
@@ -450,25 +606,19 @@
                 goalErrorEl.classList.remove('hidden');
                 return false;
             }
-            if (goal.length < 5) {
-                goalErrorEl.textContent = 'Goal should be at least 5 characters.';
-                goalErrorEl.classList.remove('hidden');
-                return false;
-            }
             goalErrorEl.classList.add('hidden');
             return true;
         };
-
+        
         const validateAssignmentForm = () => {
             let isValid = true;
             if (!assignmentTitleInput.value.trim()) {
-                assignmentTitleError.textContent = 'Title is required.';
+                assignmentTitleError.textContent = 'Assignment title is required.';
                 assignmentTitleError.classList.remove('hidden');
                 isValid = false;
             } else {
                 assignmentTitleError.classList.add('hidden');
             }
-
             if (!assignmentSubjectInput.value.trim()) {
                 assignmentSubjectError.textContent = 'Subject is required.';
                 assignmentSubjectError.classList.remove('hidden');
@@ -478,7 +628,7 @@
             }
             return isValid;
         };
-        
+
         const validateBudgetForm = () => {
             let isValid = true;
             if (!budgetTitleInput.value.trim()) {
@@ -488,10 +638,8 @@
             } else {
                 budgetTitleError.classList.add('hidden');
             }
-            
-            const amount = budgetAmountInput.value.trim();
-            if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
-                budgetAmountError.textContent = 'Please enter a valid positive number.';
+            if (!budgetAmountInput.value.trim() || isNaN(budgetAmountInput.value)) {
+                budgetAmountError.textContent = 'Valid amount is required.';
                 budgetAmountError.classList.remove('hidden');
                 isValid = false;
             } else {
@@ -500,215 +648,140 @@
             return isValid;
         };
 
-        // --- Event Handlers ---
+        // --- Event Listeners ---
 
-        const handleSaveGoal = async () => {
-            if (!validateGoal()) {
-                showAlert('Validation Error', 'Please enter a valid weekly goal.');
-                return;
+        // Listen for all click events and handle modal closing
+        document.addEventListener('click', (e) => {
+            if (e.target === menuModal) {
+                hideModal(menuModal);
             }
-            
-            const goal = goalInput.value.trim();
-            saveGoalBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-            saveGoalBtn.disabled = true;
-
-            try {
-                const response = await apiCall('http://172.20.10.10:4000/api/students/goal', {
-                    method: 'POST',
-                    body: JSON.stringify({ goal: goal })
-                });
-                showAlert('Goal Saved!', `Your weekly goal: ${response.goal}`);
-                savedGoalText.textContent = `Saved: ${response.goal}`;
-                savedGoalText.classList.remove('hidden');
-            } catch (error) {
-                console.error('Failed to save goal:', error);
-                showAlert('Error', 'Failed to save goal. Please try again.');
-            } finally {
-                saveGoalBtn.innerHTML = 'Save Goal';
-                saveGoalBtn.disabled = false;
-            }
-        };
-
-        const handleSaveAssignment = async () => {
-            if (!validateAssignmentForm()) {
-                showAlert('Validation Error', 'Please fill in all assignment details.');
-                return;
-            }
-
-            saveAssignmentBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-            saveAssignmentBtn.disabled = true;
-
-            try {
-                const newAssignment = {
-                    title: assignmentTitleInput.value.trim(),
-                    subject: assignmentSubjectInput.value.trim(),
-                    dueDate: new Date().toISOString().split('T')[0] // Example date
-                };
-                
-                await apiCall('http://172.20.10.10:4000/api/students/assignments', {
-                    method: 'POST',
-                    body: JSON.stringify(newAssignment)
-                });
-                
-                showAlert('Success', 'Assignment added successfully!');
+            if (e.target === assignmentModal) {
                 hideModal(assignmentModal);
-                assignmentTitleInput.value = '';
-                assignmentSubjectInput.value = '';
-                assignmentTitleError.classList.add('hidden');
-                assignmentSubjectError.classList.add('hidden');
-                await fetchAssignments(); // Refresh the list
-            } catch (error) {
-                console.error('Failed to save assignment:', error);
-                showAlert('Error', 'Failed to save assignment. Please try again.');
-            } finally {
-                saveAssignmentBtn.innerHTML = 'Save';
-                saveAssignmentBtn.disabled = false;
             }
-        };
-        
-        const handleSaveBudget = async () => {
-            if (!validateBudgetForm()) {
-                showAlert('Validation Error', 'Please fill in all budget details correctly.');
-                return;
-            }
-
-            saveBudgetBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-            saveBudgetBtn.disabled = true;
-
-            try {
-                const newBudget = {
-                    title: budgetTitleInput.value.trim(),
-                    amount: parseFloat(budgetAmountInput.value.trim()),
-                    type: 'expense' // Simplified for this example
-                };
-
-                await apiCall('http://172.20.10.10:4000/api/students/budget', {
-                    method: 'POST',
-                    body: JSON.stringify(newBudget)
-                });
-                
-                showAlert('Success', 'Budget entry added successfully!');
+            if (e.target === budgetModal) {
                 hideModal(budgetModal);
-                budgetTitleInput.value = '';
-                budgetAmountInput.value = '';
-                budgetTitleError.classList.add('hidden');
-                budgetAmountError.classList.add('hidden');
-                await fetchBudget(); // Refresh the list
-            } catch (error) {
-                console.error('Failed to save budget entry:', error);
-                showAlert('Error', 'Failed to save budget entry. Please try again.');
-            } finally {
-                saveBudgetBtn.innerHTML = 'Save';
-                saveBudgetBtn.disabled = false;
             }
-        };
-
-        const handleLogout = () => {
-            showAlert(
-                'Logout',
-                'Are you sure you want to log out?',
-                () => {
-                    // TODO: Replace with actual logout logic
-                    window.location.href = '/login.html'; // Or whatever your login page is
-                    closeAlert();
-                }
-            );
-        };
-
-        const navigateTo = (url) => {
-            window.location.href = url;
-            hideModal(menuModal);
-        };
-        
-        // --- Chart Initialization ---
-        const setupChart = () => {
-            const ctx = document.getElementById('analytics-chart').getContext('2d');
-            const data = {
-                labels: ['Expenses', 'Savings'],
-                datasets: [{
-                    data: [180, 100], // These values should also be fetched from an API
-                    backgroundColor: ['#2196F3', '#4CAF50'],
-                }]
-            };
-
-            new Chart(ctx, {
-                type: 'bar',
-                data: data,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'GHS',
-                                color: '#7f8c8d'
-                            }
-                        }
-                    }
-                }
-            });
-        };
-
-        // --- Event Listeners and Initial Load ---
-        document.addEventListener('DOMContentLoaded', async () => {
-            setupChart();
-            await Promise.all([
-                fetchAssignments(),
-                fetchBudget(),
-                fetchGoal()
-            ]);
+            if (e.target === alertModal) {
+                closeAlert();
+            }
         });
-
+        
+        // Navigation & Logout
         menuBtn.addEventListener('click', () => {
             showModal(menuModal);
-            setTimeout(() => {
-                menuContent.classList.remove('-translate-x-full');
-            }, 10);
+            menuContent.classList.remove('-translate-x-full');
         });
-
+        
         closeMenuBtn.addEventListener('click', () => {
             menuContent.classList.add('-translate-x-full');
-            setTimeout(() => {
-                hideModal(menuModal);
-            }, 300);
-        });
-        
-        menuModal.addEventListener('click', (e) => {
-            if (e.target === menuModal) {
-                menuContent.classList.add('-translate-x-full');
-                setTimeout(() => {
-                    hideModal(menuModal);
-                }, 300);
-            }
+            setTimeout(() => hideModal(menuModal), 300);
         });
 
-        logoutBtn.addEventListener('click', handleLogout);
-        menuLogoutBtn.addEventListener('click', handleLogout);
+        logoutBtn.addEventListener('click', () => {
+            showAlert('Log Out', 'Are you sure you want to log out?', () => {
+                // In a real app, you would clear the session here and redirect
+                window.location.href = '/login.html';
+            });
+        });
+
+        menuLogoutBtn.addEventListener('click', () => {
+            showAlert('Log Out', 'Are you sure you want to log out?', () => {
+                window.location.href = '/login.html';
+            });
+        });
+
+        // Modal Action Buttons
         addAssignmentBtn.addEventListener('click', () => showModal(assignmentModal));
         cancelAssignmentBtn.addEventListener('click', () => hideModal(assignmentModal));
-        saveAssignmentBtn.addEventListener('click', handleSaveAssignment);
-        
         addBudgetBtn.addEventListener('click', () => showModal(budgetModal));
         cancelBudgetBtn.addEventListener('click', () => hideModal(budgetModal));
-        saveBudgetBtn.addEventListener('click', handleSaveBudget);
-
-        saveGoalBtn.addEventListener('click', handleSaveGoal);
-        goalInput.addEventListener('blur', validateGoal);
-
         alertConfirmBtn.addEventListener('click', () => {
             if (alertConfirmAction) {
                 alertConfirmAction();
             }
+            closeAlert();
         });
         alertCancelBtn.addEventListener('click', closeAlert);
-    </script>
 
+        // Form Submissions
+        saveAssignmentBtn.addEventListener('click', async () => {
+            if (validateAssignmentForm()) {
+                // Here we assume the user is a teacher and creates an assignment
+                const newAssignment = {
+                    title: assignmentTitleInput.value,
+                    description: 'No description provided',
+                    dueDate: new Date().toISOString(), // Mock due date
+                    teacherId: MOCK_USER.id,
+                    schoolId: 'mock-school-id',
+                    classId: assignmentSubjectInput.value // Using subject as classId for now
+                };
+                try {
+                    await apiCall('/teacher/assignments', {
+                        method: 'POST',
+                        body: JSON.stringify(newAssignment)
+                    });
+                    hideModal(assignmentModal);
+                    showAlert('Success', 'Assignment added successfully!');
+                    fetchAssignments(); // Reload the list
+                } catch (error) {
+                    showAlert('Error', 'Failed to add assignment. Please try again.');
+                }
+            }
+        });
+
+        saveBudgetBtn.addEventListener('click', async () => {
+            if (validateBudgetForm()) {
+                const newEntry = {
+                    amount: parseFloat(budgetAmountInput.value),
+                    description: budgetTitleInput.value,
+                    type: parseFloat(budgetAmountInput.value) >= 0 ? 'income' : 'expense',
+                    userId: MOCK_USER.id
+                };
+                try {
+                    await apiCall('/budget', {
+                        method: 'POST',
+                        body: JSON.stringify(newEntry)
+                    });
+                    hideModal(budgetModal);
+                    showAlert('Success', 'Budget entry added successfully!');
+                    fetchBudget(); // Reload the list
+                } catch (error) {
+                    showAlert('Error', 'Failed to add budget entry. Please try again.');
+                }
+            }
+        });
+
+        saveGoalBtn.addEventListener('click', async () => {
+            if (validateGoal()) {
+                const goal = {
+                    description: goalInput.value.trim(),
+                    userId: MOCK_USER.id
+                };
+                try {
+                    await apiCall('/advanced-goals', {
+                        method: 'POST',
+                        body: JSON.stringify(goal)
+                    });
+                    showAlert('Success', 'Weekly goal saved!');
+                    fetchGoal(); // Reload the saved goal
+                } catch (error) {
+                    showAlert('Error', 'Failed to save goal. Please try again.');
+                }
+            }
+        });
+
+        generateInsightsBtn.addEventListener('click', generateAiInsights);
+        subscriptionToggle.addEventListener('change', (e) => {
+            isSubscribed = e.target.checked;
+        });
+
+        // --- Initial Page Load Functions ---
+        window.onload = () => {
+            fetchAssignments();
+            fetchBudget();
+            fetchGoal();
+        };
+
+    </script>
 </body>
 </html>
