@@ -19,6 +19,18 @@
     <main class="w-full max-w-2xl p-4 sm:p-6 lg:p-8">
         <h1 class="text-3xl sm:text-4xl font-bold text-center text-gray-800 my-8">Teachers in Your School</h1>
         
+        <!-- Loading and error messages will appear here -->
+        <div id="loading-message" class="text-center text-gray-500 font-medium py-4 hidden">
+            <svg class="animate-spin h-5 w-5 mr-3 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Loading teachers...
+        </div>
+        <div id="error-message" class="text-center text-red-500 font-medium py-4 hidden">
+            Failed to load teachers. Please try again later.
+        </div>
+
         <!-- This container will be populated by JavaScript -->
         <div id="teachers-list" class="space-y-4">
             <!-- Teacher items will be dynamically inserted here -->
@@ -30,17 +42,9 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
 
-            // Hardcoded data mirroring the React Native code.
-            // In a real application, this would be fetched from an API.
-            const teachersData = [
-                { id: 't1', name: 'Mr. Smith', subject: 'Mathematics', email: 'smith@school.edu' },
-                { id: 't2', name: 'Ms. Johnson', subject: 'English Literature', email: 'johnson@school.edu' },
-                { id: 't3', name: 'Dr. Lee', subject: 'Science', email: 'lee@school.edu' },
-                { id: 't4', name: 'Mrs. Davis', subject: 'History', email: 'davis@school.edu' },
-                { id: 't5', name: 'Coach Brown', subject: 'Physical Education', email: 'brown@school.edu' },
-            ];
-
             const teacherListContainer = document.getElementById('teachers-list');
+            const loadingMessage = document.getElementById('loading-message');
+            const errorMessage = document.getElementById('error-message');
 
             /**
              * Renders a single teacher item and appends it to the list.
@@ -80,10 +84,54 @@
                 teacherListContainer.appendChild(teacherItemEl);
             };
 
-            // Loop through the data and render each teacher
-            teachersData.forEach(renderTeacherItem);
+            /**
+             * Fetches the teachers list from the backend API.
+             */
+            const fetchTeachers = async () => {
+                // Show loading indicator
+                loadingMessage.classList.remove('hidden');
+                errorMessage.classList.add('hidden');
+                teacherListContainer.innerHTML = ''; // Clear previous content
+
+                try {
+                    // NOTE: You will need to get the JWT token from your authentication system.
+                    // This is a placeholder for demonstration purposes.
+                    const token = 'YOUR_JWT_TOKEN'; 
+
+                    const response = await fetch('/student/teachers/my-school', {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+
+                    // Assuming the API response has a 'teachers' key containing an array
+                    if (data.teachers && Array.isArray(data.teachers)) {
+                        data.teachers.forEach(renderTeacherItem);
+                    } else {
+                        throw new Error('Invalid data format received from the API.');
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch teachers:', error);
+                    errorMessage.classList.remove('hidden');
+                } finally {
+                    // Hide loading indicator
+                    loadingMessage.classList.add('hidden');
+                }
+            };
+
+            // Fetch the teachers list when the page loads
+            fetchTeachers();
         });
     </script>
 
 </body>
 </html>
+

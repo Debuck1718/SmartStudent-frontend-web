@@ -65,7 +65,7 @@
         };
 
         // --- Mock Auth Context ---
-        const mockUser = { username: 'john.doe', occupation: 'global_overseer' };
+        const mockUser = { username: 'john.doe', occupation: 'global_overseer', schoolName: 'Global HQ' };
         let userState = localStorage.getItem('mockUser') ? JSON.parse(localStorage.getItem('mockUser')) : null;
         const useAuth = () => {
             const [user, setUser] = useState(userState);
@@ -120,7 +120,9 @@
         // --- State Management (using a simple object for reactivity) ---
         const state = {
             dashboardData: null,
+            allFiles: null,
             isDataLoading: true,
+            isFilesLoading: false,
             auth: {
                 user: null,
                 isLoading: false,
@@ -153,18 +155,47 @@
             render();
             try {
                 // REAL API CALL
-                const res = await fetch(`${API_BASE}/api/global-overseer/dashboard-overview`);
+                const res = await fetch(`${API_BASE}/overseer/dashboard-overview`);
                 if (!res.ok) {
                     const errorData = await res.json();
                     throw new Error(errorData.message || 'Failed to fetch dashboard data');
                 }
                 const data = await res.json();
-                state.dashboardData = data;
+                // Mocking total numbers for the overview card
+                state.dashboardData = {
+                    totalRegions: data.managedRegions.length,
+                    totalSchools: data.managedRegions.reduce((sum, region) => sum + (region.totalSchools || 0), 0),
+                    totalAdmins: data.managedRegions.reduce((sum, region) => sum + (region.totalAdmins || 0), 0),
+                    totalUsers: 99999, // Placeholder as this is not in the API response
+                    totalOverseers: 99, // Placeholder
+                    managedRegions: data.managedRegions,
+                };
             } catch (error) {
                 console.error('Failed to fetch global overseer dashboard data:', error);
                 showCustomAlert('Error', 'Failed to load dashboard data.');
             } finally {
                 state.isDataLoading = false;
+                render();
+            }
+        };
+
+        // 🆕 New function to fetch all files
+        const fetchAndRenderAllFiles = async () => {
+            state.isFilesLoading = true;
+            render();
+            try {
+                const res = await fetch(`${API_BASE}/admin/all-files`);
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.message || 'Failed to fetch files');
+                }
+                const data = await res.json();
+                state.allFiles = data.files;
+            } catch (error) {
+                console.error('Failed to fetch all files:', error);
+                showCustomAlert('Error', 'Failed to load the list of files.');
+            } finally {
+                state.isFilesLoading = false;
                 render();
             }
         };
@@ -180,7 +211,7 @@
                         onPress: async () => {
                             try {
                                 await state.auth.signOut();
-                                router.replace('/(public)/login');
+                                router.replace('/public/login.html');
                             } catch (error) {
                                 console.error('Logout failed:', error);
                                 showCustomAlert('Logout Error', 'Failed to log out. Please try again.');
@@ -213,8 +244,7 @@
                         <p class="text-gray-700">You must be logged in as a Global Overseer to access this page. Redirecting to login...</p>
                     </div>
                 `;
-                // Wait a moment before redirecting for the user to see the message
-                setTimeout(() => router.replace('/(public)/login'), 3000);
+                setTimeout(() => router.replace('/public/login.html'), 3000);
                 return;
             }
 
@@ -246,7 +276,7 @@
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-md p-4">
+                <div class="bg-white rounded-xl shadow-md p-4 mb-5">
                     <h2 class="text-lg sm:text-xl font-semibold text-gray-800 border-b border-gray-200 pb-2 mb-2">Management</h2>
                     
                     <button onclick="router.push('/(app)/global-overseer')" class="action-button flex items-center justify-center bg-blue-600 text-white font-bold py-3 px-4 rounded-lg w-full mb-3 shadow-md hover:bg-blue-700 transition duration-300">
@@ -263,29 +293,77 @@
                         <i class="fas fa-globe mr-2"></i>
                         <span>Create New School / Region</span>
                     </button>
+
+                    <!-- 🆕 New button to fetch all files -->
+                    <button id="fetch-files-button" class="action-button flex items-center justify-center bg-purple-600 text-white font-bold py-3 px-4 rounded-lg w-full mb-3 shadow-md hover:bg-purple-700 transition duration-300">
+                        <i class="fas fa-file-alt mr-2"></i>
+                        <span>View All Uploaded Files</span>
+                    </button>
+                </div>
+
+                <!-- 🆕 New section for displaying all files -->
+                <div class="bg-white rounded-xl shadow-md p-4 mb-5" id="files-section" style="display:none;">
+                    <h2 class="text-lg sm:text-xl font-semibold text-gray-800 border-b border-gray-200 pb-2 mb-2">All Uploaded Files</h2>
+                    <div id="file-list-container" class="overflow-x-auto">
+                        <!-- File list table will be rendered here -->
+                    </div>
                 </div>
             `;
             container.innerHTML = dashboardHtml;
             document.getElementById('logout-button').addEventListener('click', handleLogout);
+            document.getElementById('fetch-files-button').addEventListener('click', fetchAndRenderAllFiles);
+            
+            // Render the files table if the data is available
+            if (state.allFiles) {
+                document.getElementById('files-section').style.display = 'block';
+                const fileListContainer = document.getElementById('file-list-container');
+                if (state.isFilesLoading) {
+                    fileListContainer.innerHTML = '<p class="text-center text-gray-500">Loading file list...</p>';
+                } else if (state.allFiles.length === 0) {
+                    fileListContainer.innerHTML = '<p class="text-center text-gray-500">No files found.</p>';
+                } else {
+                    const tableHtml = `
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                ${state.allFiles.map(file => `
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${file.filename}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${file.type}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <a href="${API_BASE}/admin/view-file/${file.type}/${file.filename}" target="_blank" class="text-blue-600 hover:text-blue-900">
+                                                View <i class="fas fa-external-link-alt ml-1"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                    fileListContainer.innerHTML = tableHtml;
+                }
+            }
         };
 
         // --- Initial setup on page load ---
         document.addEventListener('DOMContentLoaded', async () => {
-            // First, check if a mock user exists. If not, create one to avoid redirect loop.
-            // In a real app, this would be a proper login check.
             if (!localStorage.getItem('mockUser')) {
                 localStorage.setItem('mockUser', JSON.stringify(mockUser));
             }
             state.auth = useAuth();
             
             if (!state.auth.user) {
-                // If the user state is still null after initial check, it means they are not logged in.
                 showCustomAlert('Access Denied', 'You must be logged in as a Global Overseer to access this page.');
-                router.replace('/(public)/login');
+                router.replace('/public/login');
                 return;
             }
 
-            // Fetch data after the initial auth check
             await fetchDashboardData();
         });
     </script>
